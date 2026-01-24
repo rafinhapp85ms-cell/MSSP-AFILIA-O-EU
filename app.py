@@ -224,72 +224,123 @@ elif pagina == "Ideias de Anúncio":
         if plataforma_anuncio_manual.strip():
             plataforma_anuncio = plataforma_anuncio_manual.strip()
     
-    ctas = [
+    # CTA editável com sugestões
+    st.markdown("**Chamada para ação (CTA):**")
+    cta_sugestoes = [
         "Comprar agora",
         "Ver oferta",
         "Frete grátis na Europa",
         "Pagamento na entrega",
         "Últimas unidades"
     ]
-    cta_selecionado = st.multiselect(
-        "Chamada para ação (CTA):",
-        options=ctas,
-        default=["Comprar agora"]
+    cta_sugestao_selecionada = st.selectbox(
+        "Sugestões (opcional):",
+        [""] + cta_sugestoes,
+        label_visibility="collapsed"
+    )
+    
+    cta_personalizado = st.text_input(
+        "Digite seu CTA personalizado:",
+        value=cta_sugestao_selecionada if cta_sugestao_selecionada else "",
+        key="cta_input"
     )
     
     if st.button("✨ Gerar anúncio"):
         if not nome_produto.strip():
             st.warning("⚠️ Por favor, digite o nome do produto.")
         else:
-            # Definir tom com base no grau
+            cta_final = cta_personalizado.strip() if cta_personalizado.strip() else "Comprar agora"
+            
+            # Gerar anúncio com base no grau selecionado
             if grau_anuncio == "Conservador":
-                tom_pt = "Descubra o"
-                tom_en = "Discover the"
+                anuncio_pt = (
+                    f"Conheça o {nome_produto}.\n\n"
+                    f"Uma solução confiável para as suas necessidades.\n"
+                    f"Qualidade garantida e suporte dedicado.\n\n"
+                    f"👉 {cta_final}\n"
+                    f"[LINK DE AFILIADO AQUI]"
+                )
+                anuncio_en = (
+                    f"Discover the {nome_produto}.\n\n"
+                    f"A reliable solution for your needs.\n"
+                    f"Guaranteed quality and dedicated support.\n\n"
+                    f"👉 {cta_final}\n"
+                    f"[AFFILIATE LINK HERE]"
+                )
             elif grau_anuncio == "Equilibrado":
-                tom_pt = "Não perca o"
-                tom_en = "Don't miss the"
+                anuncio_pt = (
+                    f"Não perca o {nome_produto}!\n\n"
+                    f"✅ Qualidade premium\n"
+                    f"✅ Entrega rápida\n"
+                    f"✅ Preço especial por tempo limitado\n\n"
+                    f"👉 {cta_final}\n"
+                    f"[LINK DE AFILIADO AQUI]\n\n"
+                    f"#afiliado"
+                )
+                anuncio_en = (
+                    f"Don't miss the {nome_produto}!\n\n"
+                    f"✅ Premium quality\n"
+                    f"✅ Fast delivery\n"
+                    f"✅ Special price for a limited time\n\n"
+                    f"👉 {cta_final}\n"
+                    f"[AFFILIATE LINK HERE]\n\n"
+                    f"#affiliate"
+                )
             elif grau_anuncio == "Agressivo":
-                tom_pt = "🔥 CORRA! O"
-                tom_en = "🔥 HURRY! The"
+                anuncio_pt = (
+                    f"🔥 CORRA! O {nome_produto} está com preço promocional!\n\n"
+                    f"⚠️ ÚLTIMAS UNIDADES DISPONÍVEIS!\n"
+                    f"✅ Garantia de satisfação\n"
+                    f"✅ Frete rápido para toda a Europa\n\n"
+                    f"💥 {cta_final} ANTES QUE ACABE!\n"
+                    f"[LINK DE AFILIADO AQUI]\n\n"
+                    f"#oferta #promoção"
+                )
+                anuncio_en = (
+                    f"🔥 HURRY! The {nome_produto} is on sale!\n\n"
+                    f"⚠️ LAST UNITS AVAILABLE!\n"
+                    f"✅ Satisfaction guaranteed\n"
+                    f"✅ Fast shipping across Europe\n\n"
+                    f"💥 {cta_final} BEFORE IT'S GONE!\n"
+                    f"[AFFILIATE LINK HERE]\n\n"
+                    f"#deal #promotion"
+                )
             elif grau_anuncio == "Curto":
-                tom_pt = "Conheça"
-                tom_en = "Meet"
+                anuncio_pt = (
+                    f"{nome_produto}\n"
+                    f"👉 {cta_final}\n"
+                    f"[LINK DE AFILIADO AQUI]"
+                )
+                anuncio_en = (
+                    f"{nome_produto}\n"
+                    f"👉 {cta_final}\n"
+                    f"[AFFILIATE LINK HERE]"
+                )
             else:  # Longo
-                tom_pt = "Apresentamos com orgulho o incrível"
-                tom_en = "We proudly present the amazing"
-            
-            # Montar CTA
-            cta_texto_pt = " | ".join(cta_selecionado)
-            cta_texto_en = " | ".join([
-                "Buy now" if c == "Comprar agora" else
-                "See offer" if c == "Ver oferta" else
-                "Free shipping in Europe" if c == "Frete grátis na Europa" else
-                "Cash on delivery" if c == "Pagamento na entrega" else
-                "Last units available"
-                for c in cta_selecionado
-            ])
-            
-            # Anúncio em português
-            anuncio_pt = (
-                f"{tom_pt} {nome_produto}!\n\n"
-                f"✅ Qualidade premium garantida\n"
-                f"✅ Entrega rápida\n"
-                f"✅ Preço especial por tempo limitado\n\n"
-                f"👉 {cta_texto_pt}\n"
-                f"[LINK DE AFILIADO AQUI]\n\n"
-                f"#afiliado #{plataforma_anuncio.replace(' ', '').lower()}"
-            )
-            
-            # Anúncio em inglês
-            anuncio_en = (
-                f"{tom_en} {nome_produto}!\n\n"
-                f"✅ Premium quality guaranteed\n"
-                f"✅ Fast delivery\n"
-                f"✅ Special price for a limited time\n\n"
-                f"👉 {cta_texto_en}\n"
-                f"[AFFILIATE LINK HERE]\n\n"
-                f"#affiliate #{plataforma_anuncio.replace(' ', '').lower()}"
-            )
+                anuncio_pt = (
+                    f"Apresentamos com orgulho o incrível {nome_produto}!\n\n"
+                    f"Depois de meses de testes e desenvolvimento, criamos uma solução que realmente resolve o seu problema.\n\n"
+                    f"🌟 Benefícios:\n"
+                    f"- Resultados comprovados\n"
+                    f"- Suporte 24/7\n"
+                    f"- Garantia de 30 dias\n"
+                    f"- Entrega imediata\n\n"
+                    f"👉 {cta_final} e transforme sua vida hoje mesmo!\n"
+                    f"[LINK DE AFILIADO AQUI]\n\n"
+                    f"#transformação #resultados"
+                )
+                anuncio_en = (
+                    f"We proudly present the amazing {nome_produto}!\n\n"
+                    f"After months of testing and development, we've created a solution that truly solves your problem.\n\n"
+                    f"🌟 Benefits:\n"
+                    f"- Proven results\n"
+                    f"- 24/7 support\n"
+                    f"- 30-day guarantee\n"
+                    f"- Instant delivery\n\n"
+                    f"👉 {cta_final} and transform your life today!\n"
+                    f"[AFFILIATE LINK HERE]\n\n"
+                    f"#transformation #results"
+                )
             
             # Salvar no histórico
             novo_registro = {
@@ -297,7 +348,7 @@ elif pagina == "Ideias de Anúncio":
                 "nome_produto": nome_produto.strip(),
                 "grau": grau_anuncio,
                 "plataforma": plataforma_anuncio,
-                "ctas": cta_selecionado,
+                "cta": cta_final,
                 "anuncio_pt": anuncio_pt,
                 "anuncio_en": anuncio_en,
                 "data_hora": datetime.now().isoformat()
@@ -346,7 +397,7 @@ elif pagina == "Histórico":
                 st.write(f"- Produto: {item['nome_produto']}")
                 st.write(f"- Grau: {item['grau']}")
                 st.write(f"- Plataforma: {item['plataforma']}")
-                st.write(f"- CTA: {', '.join(item['ctas'])}")
+                st.write(f"- CTA: {item['cta']}")
                 st.subheader("🇵🇹 Português")
                 st.text_area("", value=item["anuncio_pt"], height=120, key=f"pt_{item['data_hora']}")
                 st.subheader("🇬🇧 Inglês")
