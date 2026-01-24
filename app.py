@@ -3,7 +3,6 @@ import json
 import os
 import secrets
 import hashlib
-import re
 from datetime import datetime, timedelta
 
 # ==============================
@@ -94,6 +93,9 @@ def gerar_senha_segura(tamanho=12):
 def hash_senha(senha):
     return hashlib.sha256(senha.encode()).hexdigest()
 
+# ==============================
+# Função do Motor Lógico da MSSP
+# ==============================
 def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=None):
     link_lower = link.lower() if link else ""
     if "clickbank" in link_lower:
@@ -194,6 +196,9 @@ def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=
         "gravidade": gravidade
     }
 
+# ==============================
+# Inicializar estado da sessão
+# ==============================
 if "historico" not in st.session_state:
     st.session_state.historico = carregar_historico()
 
@@ -209,6 +214,9 @@ if "etapa_pesquisa" not in st.session_state:
 if "dados_temporarios" not in st.session_state:
     st.session_state.dados_temporarios = {}
 
+# ==============================
+# Menu lateral
+# ==============================
 st.sidebar.title("MSSP Afiliado")
 pagina = st.sidebar.radio(
     "Navegue pelas seções:",
@@ -216,6 +224,9 @@ pagina = st.sidebar.radio(
     index=0
 )
 
+# ==============================
+# Página: Início
+# ==============================
 if pagina == "Início":
     st.title("🎯 MSSP Afiliado")
     st.subheader("Fase 2A — Análise Avançada de Produtos para Afiliados")
@@ -230,6 +241,9 @@ if pagina == "Início":
     """)
     st.info("💡 Dica: Comece pela página **'Pesquisa de Produtos'** para analisar sua primeira oferta.")
 
+# ==============================
+# Página: Pesquisa de Produtos
+# ==============================
 elif pagina == "Pesquisa de Produtos":
     st.title("🔍 Pesquisa de Produtos")
     
@@ -419,36 +433,39 @@ elif pagina == "Pesquisa de Produtos":
                 st.rerun()
         with col2:
             if st.button("✅ Analisar Produto"):
-                palavras_lista = [p.strip() for p in st.session_state.dados_temporarios["palavras_chave_input"].split(",") if p.strip()]
-                pais_salvar = "Europa (todos os países)" if st.session_state.dados_temporarios["pais"].strip().lower() == "europa" else st.session_state.dados_temporarios["pais"].strip()
-                comissao = st.session_state.dados_temporarios["comissao_percentual"] if st.session_state.dados_temporarios["comissao_percentual"] > 0 else 1.0
+                palavras_lista = [p.strip() for p in st.session_state.dados_temporios["palavras_chave_input"].split(",") if p.strip()]
+                pais_salvar = "Europa (todos os países)" if st.session_state.dados_temporios["pais"].strip().lower() == "europa" else st.session_state.dados_temporios["pais"].strip()
+                comissao = st.session_state.dados_temporios["comissao_percentual"] if st.session_state.dados_temporios["comissao_percentual"] > 0 else 1.0
                 
                 novo_registro = {
                     "tipo": "pesquisa_v2",
-                    "link_produto": st.session_state.dados_temporarios["link_produto"],
+                    "link_produto": st.session_state.dados_temporios["link_produto"],
                     "palavras_chave": palavras_lista,
-                    "plataforma": st.session_state.dados_temporarios["plataforma"],
-                    "tipo_produto": st.session_state.dados_temporarios["tipo_produto"],
+                    "plataforma": st.session_state.dados_temporios["plataforma"],
+                    "tipo_produto": st.session_state.dados_temporios["tipo_produto"],
                     "comissao": comissao,
                     "pais": pais_salvar,
-                    "tipo_pagamento": st.session_state.dados_temporarios["tipo_pagamento"],
-                    "cvr": st.session_state.dados_temporarios.get("cvr"),
-                    "epc": st.session_state.dados_temporarios.get("epc"),
-                    "comissao_valor": st.session_state.dados_temporarios.get("comissao"),
-                    "gravidade": st.session_state.dados_temporarios.get("gravidade"),
+                    "tipo_pagamento": st.session_state.dados_temporios["tipo_pagamento"],
+                    "cvr": st.session_state.dados_temporios.get("cvr"),
+                    "epc": st.session_state.dados_temporios.get("epc"),
+                    "comissao_valor": st.session_state.dados_temporios.get("comissao"),
+                    "gravidade": st.session_state.dados_temporios.get("gravidade"),
                     "data_hora": datetime.now().isoformat()
                 }
                 
                 st.session_state.historico.append(novo_registro)
                 salvar_historico(st.session_state.historico)
                 
-                st.session_state.dados_temporarios = {}
+                st.session_state.dados_temporios = {}
                 st.session_state.etapa_pesquisa = 1
                 
                 st.success("✅ Análise concluída!")
         with col3:
             st.empty()
 
+# ==============================
+# Página: Ideias de Anúncio
+# ==============================
 elif pagina == "Ideias de Anúncio":
     st.title("✍️ Ideias de Anúncio")
     
@@ -538,7 +555,7 @@ elif pagina == "Ideias de Anúncio":
                     f"✅ Special price for a limited time\n\n"
                     f"👉 {cta_final}\n"
                     f"[AFFILIATE LINK HERE]\n\n"
-                    f"# affiliate"
+                    f"#affiliate"
                 )
             elif grau_anuncio == "Agressivo":
                 anuncio_pt = (
@@ -617,6 +634,9 @@ elif pagina == "Ideias de Anúncio":
             st.subheader("🇬🇧 Inglês")
             st.text_area("", value=anuncio_en, height=180, key="anuncio_en")
 
+# ==============================
+# Página: Postar
+# ==============================
 elif pagina == "Postar":
     st.title("📤 Postar")
     st.caption("Configure suas credenciais e horários para postagens automáticas.")
@@ -678,6 +698,9 @@ elif pagina == "Postar":
         "- Para produção, use variáveis de ambiente (Secrets) no Streamlit Cloud."
     )
 
+# ==============================
+# Página: Histórico
+# ==============================
 elif pagina == "Histórico":
     st.title("📜 Histórico")
     
@@ -730,6 +753,9 @@ elif pagina == "Histórico":
     else:
         st.info("Nenhum registro ainda. Faça uma análise ou gere um anúncio para começar!")
 
+# ==============================
+# Página: Colaboradores (CORRIGIDA)
+# ==============================
 elif pagina == "Colaboradores":
     st.title("👥 Colaboradores")
     st.caption("Adicione colaboradores com acesso seguro e isolado por 15 dias.")
@@ -802,7 +828,7 @@ elif pagina == "Colaboradores":
                 continue
                 
             dias_restantes = (colab["expira_em"] - datetime.now()).days
-            status = "Aguardando confirmação" if not colab["confirmado"] else "Ativo"
+            status = "Aguardando confirmação" if not colab.get("confirmado", False) else "Ativo"
 
             st.markdown(f"""
             **E-mail:** {colab['email']}  
@@ -810,7 +836,7 @@ elif pagina == "Colaboradores":
             **Dias restantes:** {max(dias_restantes, 0)}
             """)
 
-            if dias_restantes <= 0 or not colab["confirmado"]:
+            if dias_restantes <= 0 or not colab.get("confirmado", False):
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.button(f"🔄 Renovar – {colab['email']}", key=f"renovar_{idx}"):
@@ -830,6 +856,9 @@ elif pagina == "Colaboradores":
     else:
         st.info("Nenhum colaborador cadastrado ainda.")
 
+# ==============================
+# Página: Configurações
+# ==============================
 elif pagina == "Configurações":
     st.title("⚙️ Configurações")
     st.write("""
