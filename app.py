@@ -55,7 +55,6 @@ def carregar_colaboradores():
         try:
             with open(COLABORADORES_ARQUIVO, "r", encoding="utf-8") as f:
                 dados = json.load(f)
-                # Converter strings de data para objetos datetime
                 for colab in dados:
                     colab["criado_em"] = datetime.fromisoformat(colab["criado_em"])
                     colab["expira_em"] = datetime.fromisoformat(colab["expira_em"])
@@ -65,7 +64,6 @@ def carregar_colaboradores():
     return []
 
 def salvar_colaboradores(colaboradores):
-    # Converter datetime para string antes de salvar
     dados_para_salvar = []
     for colab in colaboradores:
         colab_copy = colab.copy()
@@ -743,7 +741,7 @@ elif pagina == "Histórico":
         st.info("Nenhum registro ainda. Faça uma análise ou gere um anúncio para começar!")
 
 # ==============================
-# Página: Colaboradores (ATUALIZADA COM SUA LÓGICA)
+# Página: Colaboradores (CORRIGIDA — SEM experimental_rerun)
 # ==============================
 elif pagina == "Colaboradores":
     st.title("👥 Colaboradores")
@@ -792,7 +790,7 @@ elif pagina == "Colaboradores":
                     st.success("✅ Colaborador adicionado com sucesso.")
                     st.info("A senha foi gerada automaticamente pela MSSP e NÃO é exibida ao criador.")
                     # Forçar recarga para mostrar novo campo vazio
-                    st.experimental_rerun()
+                    st.rerun()
 
     # Listagem de colaboradores
     st.subheader("📋 Colaboradores cadastrados")
@@ -817,13 +815,13 @@ elif pagina == "Colaboradores":
                         colab["expira_em"] = datetime.now() + timedelta(days=15)
                         salvar_colaboradores(st.session_state.colaboradores)
                         st.success("✅ Acesso renovado por mais 15 dias.")
-                        st.experimental_rerun()
+                        st.rerun()
                 with col2:
                     if st.button(f"❌ Remover acesso – {colab['email']}", key=f"remover_{idx}"):
                         colab["ativo"] = False
                         salvar_colaboradores(st.session_state.colaboradores)
                         st.warning("⚠️ Acesso removido.")
-                        st.experimental_rerun()
+                        st.rerun()
             
             st.divider()
     else:
