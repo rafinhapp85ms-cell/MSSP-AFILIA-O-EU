@@ -105,7 +105,7 @@ if pagina == "Início":
     st.info("💡 Dica: Comece pela página **'Pesquisa de Produtos'** para analisar sua primeira oferta.")
 
 # ==============================
-# Página: Pesquisa de Produtos (ATUALIZADA)
+# Página: Pesquisa de Produtos
 # ==============================
 elif pagina == "Pesquisa de Produtos":
     st.title("🔍 Pesquisa de Produtos")
@@ -123,7 +123,6 @@ elif pagina == "Pesquisa de Produtos":
         options=plataformas_predefinidas,
         index=0
     )
-    # Permitir digitação manual mesmo com selectbox
     if plataforma == "Outra":
         plataforma_manual = st.text_input("Digite a plataforma:", key="plataforma_manual")
         if plataforma_manual.strip():
@@ -157,14 +156,12 @@ elif pagina == "Pesquisa de Produtos":
         if not palavras_chave_input.strip() or not pais.strip():
             st.warning("⚠️ Por favor, preencha palavras-chave e país.")
         else:
-            # Processar palavras-chave
             palavras_lista = [p.strip() for p in palavras_chave_input.split(",") if p.strip()]
             if len(palavras_lista) == 0:
                 st.warning("⚠️ Insira pelo menos uma palavra-chave.")
             elif len(palavras_lista) > 7:
                 st.warning("⚠️ Limite máximo: 7 palavras-chave. Remova algumas para continuar.")
             else:
-                # Processar país
                 pais_salvar = "Europa (todos os países)" if pais.strip().lower() == "europa" else pais.strip()
                 
                 score = calcular_score(comissao, tipo_produto, tipo_pagamento, pais_salvar)
@@ -194,7 +191,7 @@ elif pagina == "Pesquisa de Produtos":
                 st.markdown(f"**Explicação:** {explicacao}")
 
 # ==============================
-# Página: Ideias de Anúncio
+# Página: Ideias de Anúncio (ATUALIZADA)
 # ==============================
 elif pagina == "Ideias de Anúncio":
     st.title("✍️ Ideias de Anúncio")
@@ -204,31 +201,118 @@ elif pagina == "Ideias de Anúncio":
         placeholder="Ex: Curso de Dropshipping"
     )
     
+    grau_anuncio = st.selectbox(
+        "Grau do anúncio:",
+        ["Conservador", "Equilibrado", "Agressivo", "Curto", "Longo"]
+    )
+    
+    plataformas_anuncio = [
+        "Instagram Post",
+        "Instagram Reels",
+        "TikTok",
+        "Facebook",
+        "Pinterest",
+        "Descrição de página de vendas",
+        "Outra"
+    ]
+    plataforma_anuncio = st.selectbox(
+        "Tipo de plataforma:",
+        options=plataformas_anuncio
+    )
+    if plataforma_anuncio == "Outra":
+        plataforma_anuncio_manual = st.text_input("Digite a plataforma:", key="plataforma_anuncio_manual")
+        if plataforma_anuncio_manual.strip():
+            plataforma_anuncio = plataforma_anuncio_manual.strip()
+    
+    ctas = [
+        "Comprar agora",
+        "Ver oferta",
+        "Frete grátis na Europa",
+        "Pagamento na entrega",
+        "Últimas unidades"
+    ]
+    cta_selecionado = st.multiselect(
+        "Chamada para ação (CTA):",
+        options=ctas,
+        default=["Comprar agora"]
+    )
+    
     if st.button("✨ Gerar anúncio"):
         if not nome_produto.strip():
             st.warning("⚠️ Por favor, digite o nome do produto.")
         else:
-            anuncio = (
-                f"🔥 **Descubra o {nome_produto}!**\n\n"
+            # Definir tom com base no grau
+            if grau_anuncio == "Conservador":
+                tom_pt = "Descubra o"
+                tom_en = "Discover the"
+            elif grau_anuncio == "Equilibrado":
+                tom_pt = "Não perca o"
+                tom_en = "Don't miss the"
+            elif grau_anuncio == "Agressivo":
+                tom_pt = "🔥 CORRA! O"
+                tom_en = "🔥 HURRY! The"
+            elif grau_anuncio == "Curto":
+                tom_pt = "Conheça"
+                tom_en = "Meet"
+            else:  # Longo
+                tom_pt = "Apresentamos com orgulho o incrível"
+                tom_en = "We proudly present the amazing"
+            
+            # Montar CTA
+            cta_texto_pt = " | ".join(cta_selecionado)
+            cta_texto_en = " | ".join([
+                "Buy now" if c == "Comprar agora" else
+                "See offer" if c == "Ver oferta" else
+                "Free shipping in Europe" if c == "Frete grátis na Europa" else
+                "Cash on delivery" if c == "Pagamento na entrega" else
+                "Last units available"
+                for c in cta_selecionado
+            ])
+            
+            # Anúncio em português
+            anuncio_pt = (
+                f"{tom_pt} {nome_produto}!\n\n"
                 f"✅ Qualidade premium garantida\n"
-                f"✅ Entrega rápida em todo o país\n"
+                f"✅ Entrega rápida\n"
                 f"✅ Preço especial por tempo limitado\n\n"
-                f"👉 **Não perca esta oportunidade! Clique no link abaixo para saber mais.**\n"
+                f"👉 {cta_texto_pt}\n"
                 f"[LINK DE AFILIADO AQUI]\n\n"
-                f"#afiliado #promoção"
+                f"#afiliado #{plataforma_anuncio.replace(' ', '').lower()}"
             )
             
+            # Anúncio em inglês
+            anuncio_en = (
+                f"{tom_en} {nome_produto}!\n\n"
+                f"✅ Premium quality guaranteed\n"
+                f"✅ Fast delivery\n"
+                f"✅ Special price for a limited time\n\n"
+                f"👉 {cta_texto_en}\n"
+                f"[AFFILIATE LINK HERE]\n\n"
+                f"#affiliate #{plataforma_anuncio.replace(' ', '').lower()}"
+            )
+            
+            # Salvar no histórico
             novo_registro = {
-                "tipo": "anuncio",
+                "tipo": "anuncio_v2",
                 "nome_produto": nome_produto.strip(),
-                "anuncio": anuncio,
+                "grau": grau_anuncio,
+                "plataforma": plataforma_anuncio,
+                "ctas": cta_selecionado,
+                "anuncio_pt": anuncio_pt,
+                "anuncio_en": anuncio_en,
                 "data_hora": datetime.now().isoformat()
             }
             st.session_state.historico.append(novo_registro)
             salvar_historico(st.session_state.historico)
             
-            st.success("✅ Anúncio gerado com sucesso!")
-            st.text_area("Seu anúncio:", value=anuncio, height=180)
+            # Mostrar os anúncios
+            st.success("✅ Anúncios gerados com sucesso!")
+            
+            st.subheader("🇵🇹 Português")
+            st.text_area("", value=anuncio_pt, height=180, key="anuncio_pt")
+            
+            st.subheader("🇬🇧 Inglês")
+            st.text_area("", value=anuncio_en, height=180, key="anuncio_en")
 
 # ==============================
 # Página: Histórico
@@ -257,10 +341,16 @@ elif pagina == "Histórico":
                 st.write(f"- Score: {item['score']}/100 ({item['classificacao']})")
                 st.write(f"- Explicação: {item['explicacao']}")
                 
-            elif item["tipo"] == "anuncio":
-                st.markdown(f"**✍️ Anúncio** • {data_fmt}")
+            elif item["tipo"] == "anuncio_v2":
+                st.markdown(f"**✍️ Anúncio Bilingue** • {data_fmt}")
                 st.write(f"- Produto: {item['nome_produto']}")
-                st.text_area("", value=item["anuncio"], height=120, key=f"anuncio_{item['data_hora']}")
+                st.write(f"- Grau: {item['grau']}")
+                st.write(f"- Plataforma: {item['plataforma']}")
+                st.write(f"- CTA: {', '.join(item['ctas'])}")
+                st.subheader("🇵🇹 Português")
+                st.text_area("", value=item["anuncio_pt"], height=120, key=f"pt_{item['data_hora']}")
+                st.subheader("🇬🇧 Inglês")
+                st.text_area("", value=item["anuncio_en"], height=120, key=f"en_{item['data_hora']}")
             
             if st.button("🗑️ Apagar", key=f"del_{item['data_hora']}"):
                 st.session_state.historico.remove(item)
@@ -303,19 +393,3 @@ elif pagina == "Configurações":
     - Use a página “Ideias de Anúncio” para criar conteúdo
     - Nunca confie cegamente na análise automática
     """)
-
-# ==============================
-# INSTRUÇÕES FINAIS (para o utilizador)
-# ==============================
-# 1. Onde o código foi alterado:
-#    - Apenas na página "Pesquisa de Produtos"
-#    - Alterações: palavras-chave (máx 7), plataforma (selectbox + texto), comissão (mínimo 1%), país (aceita "Europa")
-#
-# 2. Como colar no app.py:
-#    - Substitua TODO o conteúdo do ficheiro app.py por este código
-#    - Salve com "Commit changes"
-#
-# 3. O que não deve ser testado ainda:
-#    - Não teste com mais de 7 palavras-chave até confirmar que o aviso aparece
-#    - Não tente integrar com APIs reais — este é um simulador
-#    - Não espere execução automática — todas as ações requerem confirmação manual
