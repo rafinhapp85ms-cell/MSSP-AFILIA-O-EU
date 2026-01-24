@@ -16,7 +16,7 @@ st.set_page_config(
 # Arquivos de dados
 # ==============================
 HISTORICO_ARQUIVO = "historico_afiliacao.json"
-REDES_ARQUIVO = "redes.json"
+REDES_SOCIAIS_ARQUIVO = "redes_sociais.json"
 
 # ==============================
 # Funções de persistência
@@ -34,17 +34,17 @@ def salvar_historico(historico):
     with open(HISTORICO_ARQUIVO, "w", encoding="utf-8") as f:
         json.dump(historico, f, ensure_ascii=False, indent=2)
 
-def carregar_redes():
-    if os.path.exists(REDES_ARQUIVO):
+def carregar_redes_sociais():
+    if os.path.exists(REDES_SOCIAIS_ARQUIVO):
         try:
-            with open(REDES_ARQUIVO, "r", encoding="utf-8") as f:
+            with open(REDES_SOCIAIS_ARQUIVO, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return {}
     return {}
 
-def salvar_redes(dados):
-    with open(REDES_ARQUIVO, "w", encoding="utf-8") as f:
+def salvar_redes_sociais(dados):
+    with open(REDES_SOCIAIS_ARQUIVO, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=2)
 
 def calcular_score(comissao, tipo_produto, tipo_pagamento, pais):
@@ -91,8 +91,8 @@ def gerar_explicacao(comissao, tipo_produto, tipo_pagamento, pais, score):
 if "historico" not in st.session_state:
     st.session_state.historico = carregar_historico()
 
-if "redes" not in st.session_state:
-    st.session_state.redes = carregar_redes()
+if "redes_sociais" not in st.session_state:
+    st.session_state.redes_sociais = carregar_redes_sociais()
 
 # ==============================
 # Estado para navegação por etapas
@@ -131,7 +131,7 @@ if pagina == "Início":
     st.info("💡 Dica: Comece pela página **'Pesquisa de Produtos'** para analisar sua primeira oferta.")
 
 # ==============================
-# Página: Pesquisa de Produtos (ATUALIZADA COM ETAPAS)
+# Página: Pesquisa de Produtos
 # ==============================
 elif pagina == "Pesquisa de Produtos":
     st.title("🔍 Pesquisa de Produtos")
@@ -467,14 +467,14 @@ elif pagina == "Ideias de Anúncio":
             st.text_area("", value=anuncio_en, height=180, key="anuncio_en")
 
 # ==============================
-# Página: Postar (ATUALIZADA)
+# Página: Postar (CORRIGIDA PARA PERSISTÊNCIA)
 # ==============================
 elif pagina == "Postar":
     st.title("📤 Postar")
     st.caption("Configure suas credenciais e informações para futuras postagens automáticas.")
     
-    # Carregar dados existentes
-    dados_atuais = st.session_state.redes
+    # Carregar dados salvos
+    dados_atuais = st.session_state.redes_sociais
     
     # Redes sociais
     st.subheader("📱 Redes Sociais")
@@ -485,9 +485,11 @@ elif pagina == "Postar":
     for rede in redes:
         col1, col2 = st.columns(2)
         with col1:
-            usuario = st.text_input(f"{rede} - Usuário/Login:", value=dados_atuais.get(rede, {}).get("usuario", ""), key=f"{rede}_usuario")
+            valor_usuario = dados_atuais.get(rede, {}).get("usuario", "")
+            usuario = st.text_input(f"{rede} - Usuário/Login:", value=valor_usuario, key=f"{rede}_usuario")
         with col2:
-            senha = st.text_input(f"{rede} - Senha:", type="password", value=dados_atuais.get(rede, {}).get("senha", ""), key=f"{rede}_senha")
+            valor_senha = dados_atuais.get(rede, {}).get("senha", "")
+            senha = st.text_input(f"{rede} - Senha:", type="password", value=valor_senha, key=f"{rede}_senha")
         dados_redes[rede] = {"usuario": usuario, "senha": senha}
     
     # Horário de postagens
@@ -515,8 +517,8 @@ elif pagina == "Postar":
         placeholder="Ex: garantia, benefícios, depoimentos..."
     )
     
-    # Botão de postar (gatilho futuro)
-    if st.button("🚀 Postar"):
+    # Botão de salvar
+    if st.button("💾 Salvar Configurações"):
         # Validar horário (básico)
         if horario_postagem and ":" not in horario_postagem:
             st.warning("⚠️ Formato de horário inválido. Use HH:MM (ex: 09:00).")
@@ -530,11 +532,10 @@ elif pagina == "Postar":
             }
             
             # Atualizar sessão e arquivo
-            st.session_state.redes = dados_completos
-            salvar_redes(dados_completos)
+            st.session_state.redes_sociais = dados_completos
+            salvar_redes_sociais(dados_completos)
             
-            st.success("✅ Configurações salvas! Pronto para postagem futura.")
-            st.info("ℹ️ A automação real será ativada em atualizações futuras com APIs oficiais.")
+            st.success("✅ Configurações salvas com sucesso! Os dados permanecerão após fechar e reabrir o app.")
     
     # Aviso de segurança
     st.info(
