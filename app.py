@@ -43,7 +43,7 @@ def calcular_score(comissao, tipo_produto, tipo_pagamento, pais):
         score += 15
     if tipo_pagamento == "Normal":
         score += 10
-    if pais in ["Portugal", "Espanha", "França", "Alemanha", "Itália"]:
+    if pais in ["Portugal", "Espanha", "França", "Alemanha", "Itália"] or "Europa" in pais:
         score += 5
     return min(score, 100)
 
@@ -65,7 +65,7 @@ def gerar_explicacao(comissao, tipo_produto, tipo_pagamento, pais, score):
         motivos.append("produto digital (maior margem)")
     if tipo_pagamento == "Normal":
         motivos.append("pagamento antecipado")
-    if pais in ["Portugal", "Espanha", "França", "Alemanha", "Itália"]:
+    if pais in ["Portugal", "Espanha", "França", "Alemanha", "Itália"] or "Europa" in pais:
         motivos.append("país com bom desempenho")
     if not motivos:
         motivos = ["nenhum fator favorável identificado"]
@@ -105,38 +105,47 @@ if pagina == "Início":
     st.info("💡 Dica: Comece pela página **'Pesquisa de Produtos'** para analisar sua primeira oferta.")
 
 # ==============================
-# Página: Pesquisa de Produtos
+# Página: Pesquisa de Produtos (ATUALIZADA)
 # ==============================
 elif pagina == "Pesquisa de Produtos":
     st.title("🔍 Pesquisa de Produtos")
     
     st.subheader("Analise uma nova oferta")
     
-    palavra_chave = st.text_input(
-        "Palavra-chave do produto:",
-        placeholder="Ex: fone bluetooth, curso online"
+    palavras_chave_input = st.text_input(
+        "Palavras-chave (separadas por vírgula, máximo 7):",
+        placeholder="Ex: fone, bluetooth, sem fios, wireless"
     )
     
-    plataforma = st.text_input(
+    plataformas_predefinidas = ["Amazon", "ClickBank", "Awin", "CJ Affiliate", "Hotmart", "Outra"]
+    plataforma = st.selectbox(
         "Plataforma:",
-        placeholder="Ex: Amazon, Hotmart, Awin"
+        options=plataformas_predefinidas,
+        index=0
     )
+    # Permitir digitação manual mesmo com selectbox
+    if plataforma == "Outra":
+        plataforma_manual = st.text_input("Digite a plataforma:", key="plataforma_manual")
+        if plataforma_manual.strip():
+            plataforma = plataforma_manual.strip()
     
     tipo_produto = st.selectbox(
         "Tipo de produto:",
         ["Digital", "Físico"]
     )
     
-    comissao = st.number_input(
-        "Comissão (€):",
+    comissao_input = st.number_input(
+        "Comissão (%):",
         min_value=0.0,
-        value=0.0,
-        step=0.5
+        value=1.0,
+        step=0.5,
+        help="Valor mínimo automático: 1%"
     )
+    comissao = comissao_input if comissao_input > 0 else 1.0
     
     pais = st.text_input(
         "País alvo:",
-        placeholder="Ex: Portugal, Alemanha"
+        placeholder="Ex: Portugal, Alemanha ou Europa"
     )
     
     tipo_pagamento = st.selectbox(
@@ -145,34 +154,44 @@ elif pagina == "Pesquisa de Produtos":
     )
     
     if st.button("✅ Analisar Produto"):
-        if not palavra_chave.strip() or not plataforma.strip() or not pais.strip():
-            st.warning("⚠️ Por favor, preencha palavra-chave, plataforma e país.")
+        if not palavras_chave_input.strip() or not pais.strip():
+            st.warning("⚠️ Por favor, preencha palavras-chave e país.")
         else:
-            score = calcular_score(comissao, tipo_produto, tipo_pagamento, pais)
-            classificacao = classificar_score(score)
-            explicacao = gerar_explicacao(comissao, tipo_produto, tipo_pagamento, pais, score)
-            
-            novo_registro = {
-                "tipo": "pesquisa_v2",
-                "palavra_chave": palavra_chave.strip(),
-                "plataforma": plataforma.strip(),
-                "tipo_produto": tipo_produto,
-                "comissao": comissao,
-                "pais": pais.strip(),
-                "tipo_pagamento": tipo_pagamento,
-                "score": score,
-                "classificacao": classificacao,
-                "explicacao": explicacao,
-                "data_hora": datetime.now().isoformat()
-            }
-            
-            st.session_state.historico.append(novo_registro)
-            salvar_historico(st.session_state.historico)
-            
-            st.success("✅ Análise concluída!")
-            st.markdown(f"**Score:** {score}/100")
-            st.markdown(f"**Classificação:** {classificacao}")
-            st.markdown(f"**Explicação:** {explicacao}")
+            # Processar palavras-chave
+            palavras_lista = [p.strip() for p in palavras_chave_input.split(",") if p.strip()]
+            if len(palavras_lista) == 0:
+                st.warning("⚠️ Insira pelo menos uma palavra-chave.")
+            elif len(palavras_lista) > 7:
+                st.warning("⚠️ Limite máximo: 7 palavras-chave. Remova algumas para continuar.")
+            else:
+                # Processar país
+                pais_salvar = "Europa (todos os países)" if pais.strip().lower() == "europa" else pais.strip()
+                
+                score = calcular_score(comissao, tipo_produto, tipo_pagamento, pais_salvar)
+                classificacao = classificar_score(score)
+                explicacao = gerar_explicacao(comissao, tipo_produto, tipo_pagamento, pais_salvar, score)
+                
+                novo_registro = {
+                    "tipo": "pesquisa_v2",
+                    "palavras_chave": palavras_lista,
+                    "plataforma": plataforma,
+                    "tipo_produto": tipo_produto,
+                    "comissao": comissao,
+                    "pais": pais_salvar,
+                    "tipo_pagamento": tipo_pagamento,
+                    "score": score,
+                    "classificacao": classificacao,
+                    "explicacao": explicacao,
+                    "data_hora": datetime.now().isoformat()
+                }
+                
+                st.session_state.historico.append(novo_registro)
+                salvar_historico(st.session_state.historico)
+                
+                st.success("✅ Análise concluída!")
+                st.markdown(f"**Score:** {score}/100")
+                st.markdown(f"**Classificação:** {classificacao}")
+                st.markdown(f"**Explicação:** {explicacao}")
 
 # ==============================
 # Página: Ideias de Anúncio
@@ -229,10 +248,10 @@ elif pagina == "Histórico":
             
             if item["tipo"] == "pesquisa_v2":
                 st.markdown(f"**🔍 Análise de Produto** • {data_fmt}")
-                st.write(f"- Palavra-chave: {item['palavra_chave']}")
+                st.write(f"- Palavras-chave: {', '.join(item['palavras_chave'])}")
                 st.write(f"- Plataforma: {item['plataforma']}")
                 st.write(f"- Tipo: {item['tipo_produto']}")
-                st.write(f"- Comissão: €{item['comissao']}")
+                st.write(f"- Comissão: {item['comissao']}%")
                 st.write(f"- País: {item['pais']}")
                 st.write(f"- Pagamento: {item['tipo_pagamento']}")
                 st.write(f"- Score: {item['score']}/100 ({item['classificacao']})")
@@ -284,3 +303,19 @@ elif pagina == "Configurações":
     - Use a página “Ideias de Anúncio” para criar conteúdo
     - Nunca confie cegamente na análise automática
     """)
+
+# ==============================
+# INSTRUÇÕES FINAIS (para o utilizador)
+# ==============================
+# 1. Onde o código foi alterado:
+#    - Apenas na página "Pesquisa de Produtos"
+#    - Alterações: palavras-chave (máx 7), plataforma (selectbox + texto), comissão (mínimo 1%), país (aceita "Europa")
+#
+# 2. Como colar no app.py:
+#    - Substitua TODO o conteúdo do ficheiro app.py por este código
+#    - Salve com "Commit changes"
+#
+# 3. O que não deve ser testado ainda:
+#    - Não teste com mais de 7 palavras-chave até confirmar que o aviso aparece
+#    - Não tente integrar com APIs reais — este é um simulador
+#    - Não espere execução automática — todas as ações requerem confirmação manual
