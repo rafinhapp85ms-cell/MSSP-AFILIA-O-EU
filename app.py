@@ -16,8 +16,7 @@ st.set_page_config(
 # Arquivos de dados
 # ==============================
 HISTORICO_ARQUIVO = "historico_afiliacao.json"
-REDES_SOCIAIS_ARQUIVO = "redes_sociais.json"
-HORARIOS_ARQUIVO = "horarios_postagem.json"
+DADOS_POSTAR_ARQUIVO = "dados_postar.json"
 
 # ==============================
 # Funções de persistência
@@ -35,31 +34,18 @@ def salvar_historico(historico):
     with open(HISTORICO_ARQUIVO, "w", encoding="utf-8") as f:
         json.dump(historico, f, ensure_ascii=False, indent=2)
 
-def carregar_redes_sociais():
-    if os.path.exists(REDES_SOCIAIS_ARQUIVO):
+def carregar_dados_postar():
+    if os.path.exists(DADOS_POSTAR_ARQUIVO):
         try:
-            with open(REDES_SOCIAIS_ARQUIVO, "r", encoding="utf-8") as f:
+            with open(DADOS_POSTAR_ARQUIVO, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return {}
     return {}
 
-def salvar_redes_sociais(dados):
-    with open(REDES_SOCIAIS_ARQUIVO, "w", encoding="utf-8") as f:
+def salvar_dados_postar(dados):
+    with open(DADOS_POSTAR_ARQUIVO, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=2)
-
-def carregar_horarios():
-    if os.path.exists(HORARIOS_ARQUIVO):
-        try:
-            with open(HORARIOS_ARQUIVO, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return "07:00–09:00, 12:00–14:00, 18:00–21:00"
-    return "07:00–09:00, 12:00–14:00, 18:00–21:00"
-
-def salvar_horarios(horarios):
-    with open(HORARIOS_ARQUIVO, "w", encoding="utf-8") as f:
-        json.dump(horarios, f, ensure_ascii=False)
 
 def calcular_score(comissao, tipo_produto, tipo_pagamento, pais):
     score = 50
@@ -236,11 +222,8 @@ def analisar_link_simulado(link):
 if "historico" not in st.session_state:
     st.session_state.historico = carregar_historico()
 
-if "redes_sociais" not in st.session_state:
-    st.session_state.redes_sociais = carregar_redes_sociais()
-
-if "horarios_postagem" not in st.session_state:
-    st.session_state.horarios_postagem = carregar_horarios()
+if "dados_postar" not in st.session_state:
+    st.session_state.dados_postar = carregar_dados_postar()
 
 # ==============================
 # Estado para navegação por etapas
@@ -279,7 +262,7 @@ if pagina == "Início":
     st.info("💡 Dica: Comece pela página **'Pesquisa de Produtos'** para analisar sua primeira oferta.")
 
 # ==============================
-# Página: Pesquisa de Produtos (ATUALIZADA COM ANÁLISE DETALHADA)
+# Página: Pesquisa de Produtos
 # ==============================
 elif pagina == "Pesquisa de Produtos":
     st.title("🔍 Pesquisa de Produtos")
@@ -668,80 +651,69 @@ elif pagina == "Ideias de Anúncio":
             st.text_area("", value=anuncio_en, height=180, key="anuncio_en")
 
 # ==============================
-# Página: Postar
+# Página: Postar (CORRIGIDA COM PERSISTÊNCIA TOTAL)
 # ==============================
 elif pagina == "Postar":
     st.title("📤 Postar")
     st.caption("Configure suas credenciais e horários para postagens automáticas.")
     
     # Carregar dados salvos
-    dados_atuais = st.session_state.redes_sociais
-    horarios_atuais = st.session_state.horarios_postagem
+    dados = st.session_state.dados_postar
     
     # Redes sociais
     st.subheader("📱 Redes Sociais")
     
     redes = ["YouTube", "Pinterest", "Instagram", "TikTok", "Facebook"]
-    dados_redes = {}
+    dados_atualizados = {}
     
     for rede in redes:
         col1, col2 = st.columns(2)
         with col1:
-            valor_usuario = dados_atuais.get(rede, {}).get("usuario", "")
+            valor_usuario = dados.get(rede, {}).get("usuario", "")
             usuario = st.text_input(f"{rede} - Usuário/Login:", value=valor_usuario, key=f"{rede}_usuario")
         with col2:
-            valor_senha = dados_atuais.get(rede, {}).get("senha", "")
+            valor_senha = dados.get(rede, {}).get("senha", "")
             senha = st.text_input(f"{rede} - Senha:", type="password", value=valor_senha, key=f"{rede}_senha")
-        dados_redes[rede] = {"usuario": usuario, "senha": senha}
+        dados_atualizados[rede] = {"usuario": usuario, "senha": senha}
     
-    # Horários de postagem (AUTOMATIZADO)
+    # Horários de postagem
     st.subheader("⏰ Horários de Postagens Automáticas")
-    horarios_editaveis = st.text_area(
+    horarios_padrao = dados.get("horarios_postagem", "07:00–09:00, 12:00–14:00, 18:00–21:00")
+    horarios = st.text_area(
         "Horários de pico para todas as redes (formato sugerido: HH:MM–HH:MM, separados por vírgula):",
-        value=horarios_atuais,
+        value=horarios_padrao,
         height=80,
         key="horarios_input"
     )
+    dados_atualizados["horarios_postagem"] = horarios
     
     # Link de afiliado
     st.subheader("🔗 Link de Afiliado")
+    link_afiliado_padrao = dados.get("link_afiliado", "")
     link_afiliado = st.text_input(
         "Cole seu link de afiliado:",
-        value=dados_atuais.get("link_afiliado", ""),
+        value=link_afiliado_padrao,
         placeholder="https://exemplo.com/seu-link"
     )
+    dados_atualizados["link_afiliado"] = link_afiliado
     
     # Campo adicional
     st.subheader("📝 Informações Adicionais")
+    info_extra_padrao = dados.get("info_extra", "")
     info_extra = st.text_area(
         "Cole qualquer informação extra da página de vendas:",
-        value=dados_atuais.get("info_extra", ""),
+        value=info_extra_padrao,
         placeholder="Ex: garantia, benefícios, depoimentos..."
     )
+    dados_atualizados["info_extra"] = info_extra
     
     # Botão de salvar
     if st.button("💾 Salvar Configurações"):
-        # Validar formato básico (opcional)
-        if not horarios_editaveis.strip():
-            st.warning("⚠️ Por favor, insira pelo menos um horário.")
-        else:
-            # Atualizar horários na sessão e arquivo
-            st.session_state.horarios_postagem = horarios_editaveis
-            salvar_horarios(horarios_editaveis)
-            
-            # Montar estrutura completa das redes
-            dados_completos = {
-                "redes": dados_redes,
-                "horario_postagem": horarios_editaveis,
-                "link_afiliado": link_afiliado,
-                "info_extra": info_extra
-            }
-            
-            # Atualizar sessão e arquivo
-            st.session_state.redes_sociais = dados_completos
-            salvar_redes_sociais(dados_completos)
-            
-            st.success("✅ Configurações salvas com sucesso! Os dados permanecerão após fechar e reabrir o app.")
+        # Atualizar st.session_state
+        st.session_state.dados_postar = dados_atualizados
+        # Salvar no JSON
+        salvar_dados_postar(dados_atualizados)
+        st.success("✅ Todas as configurações foram salvas com sucesso! Os dados permanecerão após fechar e reabrir o app.")
     
     # Aviso de segurança
     st.info(
