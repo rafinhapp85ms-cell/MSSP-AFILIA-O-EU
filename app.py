@@ -47,170 +47,114 @@ def salvar_dados_postar(dados):
     with open(DADOS_POSTAR_ARQUIVO, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=2)
 
-def calcular_score(comissao, tipo_produto, tipo_pagamento, pais):
-    score = 50
-    if comissao >= 10:
-        score += 20
-    elif comissao >= 5:
-        score += 10
-    if tipo_produto == "Digital":
-        score += 15
-    if tipo_pagamento == "Normal":
-        score += 10
-    if pais in ["Portugal", "Espanha", "França", "Alemanha", "Itália"] or "Europa" in pais:
-        score += 5
-    return min(score, 100)
-
-def classificar_score(score):
-    if score >= 70:
-        return "Forte"
-    elif score >= 40:
-        return "Médio"
-    else:
-        return "Fraco"
-
-def gerar_explicacao(comissao, tipo_produto, tipo_pagamento, pais, score):
-    motivos = []
-    if comissao >= 10:
-        motivos.append("comissão alta")
-    elif comissao < 5:
-        motivos.append("comissão baixa")
-    if tipo_produto == "Digital":
-        motivos.append("produto digital (maior margem)")
-    if tipo_pagamento == "Normal":
-        motivos.append("pagamento antecipado")
-    if pais in ["Portugal", "Espanha", "França", "Alemanha", "Itália"] or "Europa" in pais:
-        motivos.append("país com bom desempenho")
-    if not motivos:
-        motivos = ["nenhum fator favorável identificado"]
-    return f"Score baseado em: {', '.join(motivos)}."
-
 # ==============================
-# Função de análise inteligente do link
+# Função do Motor Lógico da MSSP
 # ==============================
-def analisar_link_inteligente(link):
-    link_lower = link.lower()
-    
-    # Detecção de plataforma
-    if "amazon" in link_lower:
-        plataforma = "Amazon"
-        tipo_produto = "Físico"
-        comissao_tipo = "Baixa (1–5%)"
-        modelo_pagamento = "Por venda confirmada"
-        pros = [
-            "Alta confiança do consumidor",
-            "Entrega rápida e logística eficiente",
-            "Avaliações reais ajudam na conversão",
-            "Produto tangível reduz objeções"
-        ]
-        contras = [
-            "Comissão muito baixa (geralmente <5%)",
-            "Alta concorrência entre afiliados",
-            "Difícil se destacar sem tráfego qualificado"
-        ]
-        nao_pode = [
-            "Usar marca 'Amazon' no anúncio sem autorização",
-            "Prometer preços mais baixos que o site",
-            "Criar falsa sensação de escassez ('Última unidade!')",
-            "Comparar com produtos não listados na Amazon"
-        ]
-        recomendacao = "Recomendo continuar"
-        justificativa = "Ideal para tráfego orgânico, reviews honestos e conteúdo educativo. Lucro por venda é baixo, mas a confiança ajuda na conversão."
-        
+def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=None):
+    # Detectar plataforma
+    link_lower = link.lower() if link else ""
+    if "clickbank" in link_lower:
+        plataforma = "ClickBank"
     elif "hotmart" in link_lower or "pay.hotmart" in link_lower:
         plataforma = "Hotmart"
-        tipo_produto = "Digital"
-        comissao_tipo = "Alta (30–90%)"
-        modelo_pagamento = "Imediato após compra"
-        pros = [
-            "Comissões altíssimas (até 90%)",
-            "Produtos digitais com apelo emocional forte",
-            "Entrega automática — sem estoque",
-            "Upsells aumentam valor médio"
-        ]
-        contras = [
-            "Alto risco de bloqueio em Meta Ads",
-            "Concorrência intensa entre afiliados",
-            "Conteúdo sensível exige cuidado redobrado"
-        ]
-        nao_pode = [
-            "Prometer ganhos financeiros garantidos",
-            "Usar depoimentos falsos ou editados",
-            "Fazer comparações enganosas com concorrentes",
-            "Usar linguagem de urgência excessiva em todas as postagens"
-        ]
-        recomendacao = "Recomendo continuar"
-        justificativa = "Excelente potencial de lucro com tráfego qualificado. Requer abordagem ética e foco em nichos como relacionamento, saúde ou finanças."
-        
-    elif "clickbank" in link_lower:
-        plataforma = "ClickBank"
-        tipo_produto = "Digital"
-        comissao_tipo = "Muito alta (50–90%)"
-        modelo_pagamento = "Semanal via PayPal"
-        pros = [
-            "Comissões extremamente altas",
-            "Produtos testados e comprovados",
-            "Ferramentas de afiliado robustas",
-            "Alta taxa de conversão em nichos certos"
-        ]
-        contras = [
-            "Risco máximo de bloqueio em redes sociais",
-            "Muitos produtos com promessas irreais",
-            "Reputação negativa em alguns segmentos"
-        ]
-        nao_pode = [
-            "Usar linguagem agressiva ('Você está perdendo dinheiro!')",
-            "Criar falsa autoridade médica ou científica",
-            "Prometer resultados milagrosos",
-            "Copiar anúncios de outros afiliados"
-        ]
-        recomendacao = "Não recomendo neste momento"
-        justificativa = "Apesar da alta comissão, o risco de banimento em plataformas de anúncio é muito elevado. Só indicado para quem tem experiência avançada em compliance."
-        
-    elif "aliexpress" in link_lower:
-        plataforma = "AliExpress"
-        tipo_produto = "Físico"
-        comissao_tipo = "Baixa (1–10%)"
-        modelo_pagamento = "Por venda confirmada"
-        pros = [
-            "Milhares de produtos disponíveis",
-            "Preços competitivos",
-            "Frete grátis em muitos itens"
-        ]
-        contras = [
-            "Tempo de entrega longo (15–45 dias)",
-            "Comissão baixa",
-            "Qualidade variável dos produtos"
-        ]
-        nao_pode = [
-            "Prometer entrega rápida (<10 dias)",
-            "Usar imagens de marcas famosas sem autorização",
-            "Ocultar origem do produto (China)"
-        ]
-        recomendacao = "Não recomendo neste momento"
-        justificativa = "Tempo de entrega e qualidade inconsistente geram alto índice de devolução e insatisfação. Melhor focar em marketplaces locais."
-        
+    elif "amazon" in link_lower:
+        plataforma = "Amazon"
+    elif "awin" in link_lower:
+        plataforma = "Awin"
+    elif "cj.com" in link_lower or "commissionjunction" in link_lower:
+        plataforma = "CJ Affiliate"
     else:
-        plataforma = "Outra / Desconhecida"
-        tipo_produto = "Não identificado"
-        comissao_tipo = "Desconhecida"
-        modelo_pagamento = "Desconhecido"
-        pros = ["Informações insuficientes para avaliar vantagens"]
-        contras = ["Plataforma não reconhecida — risco de baixa conversão"]
-        nao_pode = ["Evite promover sem conhecer políticas de afiliado"]
-        recomendacao = "Não recomendo neste momento"
-        justificativa = "Sem dados suficientes para análise segura. Verifique se a plataforma tem programa de afiliados oficial e suporte documentado."
+        plataforma = "Outra / Não identificada"
+    
+    # Aplicar regras de decisão
+    criterios_aprovados = 0
+    cvr_aprovado = cvr is not None and cvr >= 3
+    epc_aprovado = epc is not None and epc >= 3
+    comissao_aprovado = comissao is not None and comissao >= 50
+    gravidade_aprovado = gravidade is not None and gravidade >= 30
+    
+    if cvr_aprovado: criterios_aprovados += 1
+    if epc_aprovado: criterios_aprovados += 1
+    if comissao_aprovado: criterios_aprovados += 1
+    if gravidade_aprovado: criterios_aprovados += 1
+    
+    # Classificação
+    if criterios_aprovados >= 3:
+        classificacao = "🟢 APROVAR"
+    elif criterios_aprovados == 2:
+        classificacao = "🟡 TESTAR"
+    else:
+        classificacao = "🔴 DESCARTAR"
+    
+    # Pontos fortes e fracos
+    pontos_fortes = []
+    pontos_fracos = []
+    
+    if cvr_aprovado:
+        pontos_fortes.append("Alta taxa de conversão (≥3%)")
+    else:
+        pontos_fracos.append("Baixa taxa de conversão (<3%)")
+    
+    if epc_aprovado:
+        pontos_fortes.append("Bom ganho por clique (≥$3)")
+    else:
+        pontos_fracos.append("Ganho por clique baixo (<$3)")
+    
+    if comissao_aprovado:
+        pontos_fortes.append("Comissão alta (≥$50)")
+    else:
+        pontos_fracos.append("Comissão baixa (<$50)")
+    
+    if gravidade_aprovado:
+        pontos_fortes.append("Alta demanda (gravidade ≥30)")
+    else:
+        pontos_fracos.append("Baixa demanda ou difícil de vender (gravidade <30)")
+    
+    # Tipo de tráfego
+    if epc_aprovado and comissao_aprovado:
+        trafego_indicado = "Pago (Meta Ads, Google)"
+    else:
+        trafego_indicado = "Orgânico (YouTube, blogs, grupos)"
+    
+    # Redes sociais
+    if plataforma in ["Hotmart", "ClickBank"]:
+        redes_adequadas = ["Instagram", "TikTok", "Facebook"]
+        restricoes = [
+            "Meta Ads: bloqueia promessas financeiras e saúde não comprovada",
+            "TikTok: restringe suplementos e relacionamentos 'milagrosos'"
+        ]
+    elif plataforma == "Amazon":
+        redes_adequadas = ["Pinterest", "YouTube", "Facebook"]
+        restricoes = [
+            "Não pode usar marca 'Amazon' sem autorização",
+            "Evitar falsa escassez ('Última unidade!')"
+        ]
+    else:
+        redes_adequadas = ["Instagram", "Facebook", "YouTube"]
+        restricoes = ["Ver políticas da plataforma antes de anunciar"]
+    
+    # Conclusão final
+    if classificacao == "🟢 APROVAR":
+        conclusao = "Vale a pena seguir com este produto. Alto potencial de lucro com risco controlado."
+    elif classificacao == "🟡 TESTAR":
+        conclusao = "Teste com orçamento limitado. O produto tem potencial, mas exige validação real."
+    else:
+        conclusao = "Não recomendo neste momento. Risco alto e retorno incerto."
     
     return {
         "plataforma": plataforma,
-        "tipo_produto": tipo_produto,
-        "pros": pros,
-        "contras": contras,
-        "nao_pode": nao_pode,
-        "comissao_tipo": comissao_tipo,
-        "modelo_pagamento": modelo_pagamento,
-        "recomendacao": recomendacao,
-        "justificativa": justificativa
+        "classificacao": classificacao,
+        "criterios_aprovados": criterios_aprovados,
+        "pontos_fortes": pontos_fortes,
+        "pontos_fracos": pontos_fracos,
+        "trafego_indicado": trafego_indicado,
+        "redes_adequadas": redes_adequadas,
+        "restricoes": restricoes,
+        "conclusao": conclusao,
+        "cvr": cvr,
+        "epc": epc,
+        "comissao": comissao,
+        "gravidade": gravidade
     }
 
 # ==============================
@@ -259,7 +203,7 @@ if pagina == "Início":
     st.info("💡 Dica: Comece pela página **'Pesquisa de Produtos'** para analisar sua primeira oferta.")
 
 # ==============================
-# Página: Pesquisa de Produtos (ATUALIZADA COM LÓGICA INTELIGENTE)
+# Página: Pesquisa de Produtos (COM MOTOR LÓGICO)
 # ==============================
 elif pagina == "Pesquisa de Produtos":
     st.title("🔍 Pesquisa de Produtos")
@@ -273,42 +217,80 @@ elif pagina == "Pesquisa de Produtos":
             placeholder="https://exemplo.com/produto"
         )
         
+        # Campos opcionais para métricas
+        st.markdown("### (Opcional) Métricas avançadas:")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            cvr_input = st.number_input("CVR (%)", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
+        with col2:
+            epc_input = st.number_input("EPC ($)", min_value=0.0, value=0.0, step=0.1)
+        with col3:
+            comissao_input = st.number_input("Comissão ($)", min_value=0.0, value=0.0, step=1.0)
+        with col4:
+            gravidade_input = st.number_input("Gravidade", min_value=0, value=0, step=1)
+        
         # Mostrar análise assim que o link for preenchido
-        if link_produto.strip():
-            with st.spinner("🧠 Analisando o produto..."):
-                resultado = analisar_link_inteligente(link_produto.strip())
+        if link_produto.strip() or any([cvr_input > 0, epc_input > 0, comissao_input > 0, gravidade_input > 0]):
+            cvr_val = cvr_input if cvr_input > 0 else None
+            epc_val = epc_input if epc_input > 0 else None
+            comissao_val = comissao_input if comissao_input > 0 else None
+            gravidade_val = gravidade_input if gravidade_input > 0 else None
+            
+            with st.spinner("🧠 Analisando com o Motor Lógico da MSSP..."):
+                resultado = analisar_produto_mssp(
+                    link=link_produto.strip(),
+                    cvr=cvr_val,
+                    epc=epc_val,
+                    comissao=comissao_val,
+                    gravidade=gravidade_val
+                )
             
             st.markdown("---")
-            st.subheader("📊 Relatório Inteligente do Produto")
+            st.subheader("📊 Relatório Inteligente da MSSP")
             
-            # Plataforma e tipo
+            # Plataforma
             st.markdown("🔹 **Plataforma identificada:**")
-            st.write(f"{resultado['plataforma']} ({resultado['tipo_produto']})")
+            st.write(resultado["plataforma"])
             
-            # Prós
-            st.markdown("🔹 **Prós do produto:**")
-            for pro in resultado["pros"]:
-                st.write(f"- {pro}")
+            # Classificação
+            st.markdown("🔹 **Classificação automática:**")
+            st.subheader(resultado["classificacao"])
             
-            # Contras
-            st.markdown("🔹 **Contras do produto:**")
-            for contra in resultado["contras"]:
-                st.write(f"- {contra}")
+            # Critérios
+            st.markdown("🔹 **Critérios analisados:**")
+            st.write(f"- CVR: {resultado['cvr']}% {'✅' if resultado['cvr'] and resultado['cvr'] >= 3 else '❌'}")
+            st.write(f"- EPC: ${resultado['epc']} {'✅' if resultado['epc'] and resultado['epc'] >= 3 else '❌'}")
+            st.write(f"- Comissão: ${resultado['comissao']} {'✅' if resultado['comissao'] and resultado['comissao'] >= 50 else '❌'}")
+            st.write(f"- Gravidade: {resultado['gravidade']} {'✅' if resultado['gravidade'] and resultado['gravidade'] >= 30 else '❌'}")
             
-            # O que NÃO pode fazer
-            st.markdown("🔹 **O que NÃO PODE fazer na divulgação:**")
-            for item in resultado["nao_pode"]:
-                st.write(f"- {item}")
+            # Pontos fortes
+            if resultado["pontos_fortes"]:
+                st.markdown("🔹 **Pontos fortes:**")
+                for p in resultado["pontos_fortes"]:
+                    st.write(f"- {p}")
             
-            # Resumo da página de afiliado
-            st.markdown("🔹 **Resumo da página de afiliado:**")
-            st.write(f"- Tipo de comissão: {resultado['comissao_tipo']}")
-            st.write(f"- Modelo de pagamento: {resultado['modelo_pagamento']}")
+            # Pontos fracos
+            if resultado["pontos_fracos"]:
+                st.markdown("🔹 **Pontos fracos:**")
+                for p in resultado["pontos_fracos"]:
+                    st.write(f"- {p}")
             
-            # Opinião da MSSP
-            st.markdown("🔹 **Opinião da MSSP (parceira estratégica):**")
-            st.write(f"**{resultado['recomendacao']}**")
-            st.write(resultado["justificativa"])
+            # Tráfego indicado
+            st.markdown("🔹 **Tipo de tráfego mais indicado:**")
+            st.write(resultado["trafego_indicado"])
+            
+            # Redes sociais
+            st.markdown("🔹 **Redes sociais mais adequadas:**")
+            st.write(", ".join(resultado["redes_adequadas"]))
+            
+            # Restrições
+            st.markdown("🔹 **Possíveis restrições de anúncios:**")
+            for r in resultado["restricoes"]:
+                st.write(f"- {r}")
+            
+            # Conclusão final
+            st.markdown("🔹 **Conclusão final da MSSP (sua parceira de negócios):**")
+            st.write(f"**{resultado['conclusao']}**")
             
             st.markdown("---")
         
@@ -317,12 +299,18 @@ elif pagina == "Pesquisa de Produtos":
             if st.button("➡️ Avançar"):
                 if link_produto.strip():
                     st.session_state.dados_temporarios["link_produto"] = link_produto.strip()
+                    st.session_state.dados_temporarios.update({
+                        "cvr": cvr_input if cvr_input > 0 else None,
+                        "epc": epc_input if epc_input > 0 else None,
+                        "comissao": comissao_input if comissao_input > 0 else None,
+                        "gravidade": gravidade_input if gravidade_input > 0 else None
+                    })
                     st.session_state.etapa_pesquisa = 2
                     st.rerun()
                 else:
                     st.warning("⚠️ Por favor, insira o link do produto.")
         with col2:
-            st.empty()  # Espaço vazio para alinhamento
+            st.empty()
 
     # Etapa 2: Palavras-chave e detalhes
     elif st.session_state.etapa_pesquisa == 2:
@@ -354,7 +342,7 @@ elif pagina == "Pesquisa de Produtos":
         comissao_input = st.number_input(
             "Comissão (%):",
             min_value=0.0,
-            value=float(st.session_state.dados_temporarios.get("comissao", 1.0)),
+            value=float(st.session_state.dados_temporarios.get("comissao_percentual", 1.0)),
             step=0.5,
             help="Valor mínimo automático: 1%"
         )
@@ -389,7 +377,7 @@ elif pagina == "Pesquisa de Produtos":
                             "palavras_chave_input": palavras_chave_input,
                             "plataforma": plataforma,
                             "tipo_produto": tipo_produto,
-                            "comissao": comissao_input,
+                            "comissao_percentual": comissao_input,
                             "pais": pais,
                             "tipo_pagamento": tipo_pagamento
                         })
@@ -409,7 +397,7 @@ elif pagina == "Pesquisa de Produtos":
         st.write(f"- Palavras-chave: {st.session_state.dados_temporarios['palavras_chave_input']}")
         st.write(f"- Plataforma: {st.session_state.dados_temporarios['plataforma']}")
         st.write(f"- Tipo: {st.session_state.dados_temporarios['tipo_produto']}")
-        st.write(f"- Comissão: {st.session_state.dados_temporarios['comissao']}%")
+        st.write(f"- Comissão: {st.session_state.dados_temporarios['comissao_percentual']}%")
         st.write(f"- País: {st.session_state.dados_temporarios['pais']}")
         st.write(f"- Pagamento: {st.session_state.dados_temporarios['tipo_pagamento']}")
         
@@ -423,11 +411,7 @@ elif pagina == "Pesquisa de Produtos":
                 # Processar dados
                 palavras_lista = [p.strip() for p in st.session_state.dados_temporarios["palavras_chave_input"].split(",") if p.strip()]
                 pais_salvar = "Europa (todos os países)" if st.session_state.dados_temporarios["pais"].strip().lower() == "europa" else st.session_state.dados_temporarios["pais"].strip()
-                comissao = st.session_state.dados_temporarios["comissao"] if st.session_state.dados_temporarios["comissao"] > 0 else 1.0
-                
-                score = calcular_score(comissao, st.session_state.dados_temporarios["tipo_produto"], st.session_state.dados_temporarios["tipo_pagamento"], pais_salvar)
-                classificacao = classificar_score(score)
-                explicacao = gerar_explicacao(comissao, st.session_state.dados_temporarios["tipo_produto"], st.session_state.dados_temporarios["tipo_pagamento"], pais_salvar, score)
+                comissao = st.session_state.dados_temporarios["comissao_percentual"] if st.session_state.dados_temporarios["comissao_percentual"] > 0 else 1.0
                 
                 novo_registro = {
                     "tipo": "pesquisa_v2",
@@ -438,9 +422,10 @@ elif pagina == "Pesquisa de Produtos":
                     "comissao": comissao,
                     "pais": pais_salvar,
                     "tipo_pagamento": st.session_state.dados_temporarios["tipo_pagamento"],
-                    "score": score,
-                    "classificacao": classificacao,
-                    "explicacao": explicacao,
+                    "cvr": st.session_state.dados_temporarios.get("cvr"),
+                    "epc": st.session_state.dados_temporarios.get("epc"),
+                    "comissao_valor": st.session_state.dados_temporarios.get("comissao"),
+                    "gravidade": st.session_state.dados_temporarios.get("gravidade"),
                     "data_hora": datetime.now().isoformat()
                 }
                 
@@ -452,9 +437,6 @@ elif pagina == "Pesquisa de Produtos":
                 st.session_state.etapa_pesquisa = 1
                 
                 st.success("✅ Análise concluída!")
-                st.markdown(f"**Score:** {score}/100")
-                st.markdown(f"**Classificação:** {classificacao}")
-                st.markdown(f"**Explicação:** {explicacao}")
         with col3:
             st.empty()
 
@@ -725,14 +707,20 @@ elif pagina == "Histórico":
             if item["tipo"] == "pesquisa_v2":
                 st.markdown(f"**🔍 Análise de Produto** • {data_fmt}")
                 st.write(f"- Link: {item['link_produto']}")
+                if item.get("cvr"):
+                    st.write(f"- CVR: {item['cvr']}%")
+                if item.get("epc"):
+                    st.write(f"- EPC: ${item['epc']}")
+                if item.get("comissao_valor"):
+                    st.write(f"- Comissão: ${item['comissao_valor']}")
+                if item.get("gravidade"):
+                    st.write(f"- Gravidade: {item['gravidade']}")
                 st.write(f"- Palavras-chave: {', '.join(item['palavras_chave'])}")
                 st.write(f"- Plataforma: {item['plataforma']}")
                 st.write(f"- Tipo: {item['tipo_produto']}")
-                st.write(f"- Comissão: {item['comissao']}%")
+                st.write(f"- Comissão (%): {item['comissao']}%")
                 st.write(f"- País: {item['pais']}")
                 st.write(f"- Pagamento: {item['tipo_pagamento']}")
-                st.write(f"- Score: {item['score']}/100 ({item['classificacao']})")
-                st.write(f"- Explicação: {item['explicacao']}")
                 
             elif item["tipo"] == "anuncio_v2":
                 st.markdown(f"**✍️ Anúncio Bilingue** • {data_fmt}")
