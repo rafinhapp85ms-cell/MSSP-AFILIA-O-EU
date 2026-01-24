@@ -16,6 +16,7 @@ st.set_page_config(
 # Arquivos de dados
 # ==============================
 HISTORICO_ARQUIVO = "historico_afiliacao.json"
+REDES_ARQUIVO = "redes.json"
 
 # ==============================
 # Funções de persistência
@@ -32,6 +33,19 @@ def carregar_historico():
 def salvar_historico(historico):
     with open(HISTORICO_ARQUIVO, "w", encoding="utf-8") as f:
         json.dump(historico, f, ensure_ascii=False, indent=2)
+
+def carregar_redes():
+    if os.path.exists(REDES_ARQUIVO):
+        try:
+            with open(REDES_ARQUIVO, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def salvar_redes(dados):
+    with open(REDES_ARQUIVO, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=2)
 
 def calcular_score(comissao, tipo_produto, tipo_pagamento, pais):
     score = 50
@@ -77,13 +91,16 @@ def gerar_explicacao(comissao, tipo_produto, tipo_pagamento, pais, score):
 if "historico" not in st.session_state:
     st.session_state.historico = carregar_historico()
 
+if "redes" not in st.session_state:
+    st.session_state.redes = carregar_redes()
+
 # ==============================
 # Menu lateral
 # ==============================
 st.sidebar.title("MSSP Afiliado")
 pagina = st.sidebar.radio(
     "Navegue pelas seções:",
-    ("Início", "Pesquisa de Produtos", "Ideias de Anúncio", "Histórico", "Configurações"),
+    ("Início", "Pesquisa de Produtos", "Ideias de Anúncio", "Postar", "Histórico", "Configurações"),
     index=0
 )
 
@@ -191,7 +208,7 @@ elif pagina == "Pesquisa de Produtos":
                 st.markdown(f"**Explicação:** {explicacao}")
 
 # ==============================
-# Página: Ideias de Anúncio (ATUALIZADA)
+# Página: Ideias de Anúncio
 # ==============================
 elif pagina == "Ideias de Anúncio":
     st.title("✍️ Ideias de Anúncio")
@@ -364,6 +381,83 @@ elif pagina == "Ideias de Anúncio":
             
             st.subheader("🇬🇧 Inglês")
             st.text_area("", value=anuncio_en, height=180, key="anuncio_en")
+
+# ==============================
+# Página: Postar (NOVA)
+# ==============================
+elif pagina == "Postar":
+    st.title("📤 Postar")
+    st.caption("Configure suas credenciais e informações para futuras postagens automáticas.")
+    
+    # Carregar dados existentes
+    dados_atuais = st.session_state.redes
+    
+    # Redes sociais
+    st.subheader("📱 Redes Sociais")
+    
+    redes = ["YouTube", "Pinterest", "Instagram", "TikTok", "Facebook"]
+    dados_redes = {}
+    
+    for rede in redes:
+        col1, col2 = st.columns(2)
+        with col1:
+            usuario = st.text_input(f"{rede} - Usuário/Login:", value=dados_atuais.get(rede, {}).get("usuario", ""), key=f"{rede}_usuario")
+        with col2:
+            senha = st.text_input(f"{rede} - Senha:", type="password", value=dados_atuais.get(rede, {}).get("senha", ""), key=f"{rede}_senha")
+        dados_redes[rede] = {"usuario": usuario, "senha": senha}
+    
+    # Horário de postagens
+    st.subheader("⏰ Horário de Postagens Automáticas")
+    horario_padrao = dados_atuais.get("horario_postagem", "09:00")
+    horario_postagem = st.text_input(
+        "Horário diário (formato HH:MM):",
+        value=horario_padrao,
+        placeholder="Ex: 09:00, 15:30"
+    )
+    
+    # Link de afiliado
+    st.subheader("🔗 Link de Afiliado")
+    link_afiliado = st.text_input(
+        "Cole seu link de afiliado:",
+        value=dados_atuais.get("link_afiliado", ""),
+        placeholder="https://exemplo.com/seu-link"
+    )
+    
+    # Campo adicional
+    st.subheader("📝 Informações Adicionais")
+    info_extra = st.text_area(
+        "Cole qualquer informação extra da página de vendas:",
+        value=dados_atuais.get("info_extra", ""),
+        placeholder="Ex: garantia, benefícios, depoimentos..."
+    )
+    
+    # Botão de salvar
+    if st.button("💾 Salvar Configurações"):
+        # Validar horário (básico)
+        if horario_postagem and ":" not in horario_postagem:
+            st.warning("⚠️ Formato de horário inválido. Use HH:MM (ex: 09:00).")
+        else:
+            # Montar estrutura completa
+            dados_completos = {
+                "redes": dados_redes,
+                "horario_postagem": horario_postagem,
+                "link_afiliado": link_afiliado,
+                "info_extra": info_extra
+            }
+            
+            # Atualizar sessão e arquivo
+            st.session_state.redes = dados_completos
+            salvar_redes(dados_completos)
+            
+            st.success("✅ Configurações salvas com sucesso!")
+    
+    # Aviso de segurança
+    st.info(
+        "🔒 **Importante:**\n\n"
+        "- As senhas são armazenadas localmente no seu repositório GitHub.\n"
+        "- Nunca compartilhe este repositório publicamente com senhas reais.\n"
+        "- Para produção, use variáveis de ambiente (Secrets) no Streamlit Cloud."
+    )
 
 # ==============================
 # Página: Histórico
