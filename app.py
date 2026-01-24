@@ -100,6 +100,137 @@ def gerar_explicacao(comissao, tipo_produto, tipo_pagamento, pais, score):
     return f"Score baseado em: {', '.join(motivos)}."
 
 # ==============================
+# Função de análise simulada do link
+# ==============================
+def analisar_link_simulado(link):
+    link_lower = link.lower()
+    
+    # Detectar plataforma
+    if "amazon" in link_lower:
+        plataforma = "Amazon"
+        tipo_produto = "Físico"
+        comissao_tipo = "Baixa (1–5%)"
+        modelo_pagamento = "Por venda confirmada"
+    elif "hotmart" in link_lower or "pay.hotmart" in link_lower:
+        plataforma = "Hotmart"
+        tipo_produto = "Digital"
+        comissao_tipo = "Alta (30–90%)"
+        modelo_pagamento = "Imediato após compra"
+    elif "clickbank" in link_lower:
+        plataforma = "ClickBank"
+        tipo_produto = "Digital"
+        comissao_tipo = "Muito alta (50–90%)"
+        modelo_pagamento = "Semanal via PayPal"
+    elif "awin" in link_lower:
+        plataforma = "Awin"
+        tipo_produto = "Misto"
+        comissao_tipo = "Variável (2–20%)"
+        modelo_pagamento = "Mensal"
+    elif "cj.com" in link_lower or "commissionjunction" in link_lower:
+        plataforma = "CJ Affiliate"
+        tipo_produto = "Misto"
+        comissao_tipo = "Variável (1–15%)"
+        modelo_pagamento = "Mensal"
+    else:
+        plataforma = "Outra"
+        tipo_produto = "Não identificado"
+        comissao_tipo = "Desconhecida"
+        modelo_pagamento = "Desconhecido"
+    
+    # Determinar potencial com base na plataforma
+    if plataforma in ["Hotmart", "ClickBank"]:
+        potencial_vendas = "Alto"
+        justificativa_vendas = "Produtos digitais com alta conversão e apelo emocional."
+        potencial_lucro = "Alta"
+        frequencia_compra = "Única ou recorrente (dependendo do produto)"
+    elif plataforma == "Amazon":
+        potencial_vendas = "Médio"
+        justificativa_vendas = "Produto físico com boa visibilidade, mas concorrência elevada."
+        potencial_lucro = "Baixa"
+        frequencia_compra = "Geralmente única"
+    elif plataforma in ["Awin", "CJ Affiliate"]:
+        potencial_vendas = "Médio"
+        justificativa_vendas = "Varia conforme o nicho; geralmente produtos físicos ou serviços."
+        potencial_lucro = "Média"
+        frequencia_compra = "Variável"
+    else:
+        potencial_vendas = "Baixo"
+        justificativa_vendas = "Plataforma não reconhecida. Risco de baixa conversão."
+        potencial_lucro = "Baixa"
+        frequencia_compra = "Desconhecida"
+    
+    # Prós
+    pros = []
+    if tipo_produto == "Digital":
+        pros.append("Produto digital: entrega automática, sem estoque")
+        pros.append("Apelo emocional forte (ex: relacionamentos, saúde, dinheiro)")
+        pros.append("Fácil de divulgar em redes sociais")
+        pros.append("Público-alvo claro: pessoas buscando transformação rápida")
+    elif tipo_produto == "Físico":
+        pros.append("Produto tangível: maior confiança do consumidor")
+        pros.append("Menos restrições de conteúdo em algumas plataformas")
+        pros.append("Público mais amplo")
+    else:
+        pros.append("Informações insuficientes para avaliar vantagens")
+    
+    # Contras
+    contras = []
+    if plataforma in ["Hotmart", "ClickBank"]:
+        contras.append("Alta concorrência entre afiliados")
+        contras.append("Risco de bloqueio em Meta Ads por promessas irreais")
+        contras.append("Conteúdo sensível (saúde, finanças) exige cuidado")
+    elif plataforma == "Amazon":
+        contras.append("Comissão baixa reduz lucro por venda")
+        contras.append("Difícil se destacar sem tráfego qualificado")
+    if tipo_produto == "Digital":
+        contras.append("Possíveis restrições em Instagram/TikTok para certos nichos")
+    
+    # O que pode fazer
+    pode_fazer = [
+        "Criar anúncios educativos (ex: 'Como resolver X problema')",
+        "Usar depoimentos reais (sem prometer resultados)",
+        "Focar em benefícios reais, não milagres",
+        "Divulgar em grupos relevantes (com permissão)",
+        "Usar storytelling pessoal"
+    ]
+    
+    # O que NÃO pode fazer
+    nao_pode_fazer = [
+        "Prometer resultados garantidos ('você vai ganhar €1000')",
+        "Usar linguagem de urgência excessiva ('ÚLTIMA CHANCE!') em todas as postagens",
+        "Copiar anúncios de outros afiliados",
+        "Usar imagens de celebridades sem autorização",
+        "Fazer comparações falsas com concorrentes"
+    ]
+    
+    # Opinião final
+    if plataforma in ["Hotmart", "ClickBank"] and potencial_vendas == "Alto":
+        recomendacao = "SIM"
+        explicacao_recomendacao = "Produto com alta comissão e apelo emocional. Ideal para tráfego qualificado em nichos como relacionamento, saúde ou finanças. Requer cuidado com a abordagem, mas tem alto potencial de lucro."
+    elif plataforma == "Amazon" and potencial_vendas == "Médio":
+        recomendacao = "SIM, com cautela"
+        explicacao_recomendacao = "Boa opção para iniciantes ou tráfego orgânico. Lucro por venda é baixo, então é necessário volume. Funciona bem com reviews honestos e conteúdo educativo."
+    else:
+        recomendacao = "NÃO"
+        explicacao_recomendacao = "Plataforma ou produto com baixo potencial de conversão ou margem insuficiente. Invista seu tempo em ofertas com melhor estrutura de comissão e suporte ao afiliado."
+    
+    return {
+        "plataforma": plataforma,
+        "pros": pros,
+        "contras": contras,
+        "potencial_vendas": potencial_vendas,
+        "justificativa_vendas": justificativa_vendas,
+        "potencial_lucro": potencial_lucro,
+        "frequencia_compra": frequencia_compra,
+        "pode_fazer": pode_fazer,
+        "nao_pode_fazer": nao_pode_fazer,
+        "comissao_tipo": comissao_tipo,
+        "modelo_pagamento": modelo_pagamento,
+        "recomendacao": recomendacao,
+        "explicacao_recomendacao": explicacao_recomendacao
+    }
+
+# ==============================
 # Inicializar estado da sessão
 # ==============================
 if "historico" not in st.session_state:
@@ -148,12 +279,12 @@ if pagina == "Início":
     st.info("💡 Dica: Comece pela página **'Pesquisa de Produtos'** para analisar sua primeira oferta.")
 
 # ==============================
-# Página: Pesquisa de Produtos
+# Página: Pesquisa de Produtos (ATUALIZADA COM ANÁLISE DETALHADA)
 # ==============================
 elif pagina == "Pesquisa de Produtos":
     st.title("🔍 Pesquisa de Produtos")
     
-    # Etapa 1: Link do produto
+    # Etapa 1: Link do produto + Análise imediata
     if st.session_state.etapa_pesquisa == 1:
         st.subheader("Etapa 1/3: Link do Produto")
         link_produto = st.text_input(
@@ -161,6 +292,59 @@ elif pagina == "Pesquisa de Produtos":
             value=st.session_state.dados_temporarios.get("link_produto", ""),
             placeholder="https://exemplo.com/produto"
         )
+        
+        # Mostrar análise assim que o link for preenchido
+        if link_produto.strip():
+            with st.spinner("🧠 Analisando o produto..."):
+                resultado = analisar_link_simulado(link_produto.strip())
+            
+            st.markdown("---")
+            st.subheader("📊 Relatório de Análise do Produto")
+            
+            # Plataforma
+            st.markdown("🔹 **Plataforma identificada:**")
+            st.write(resultado["plataforma"])
+            
+            # Prós
+            st.markdown("🔹 **Prós do produto:**")
+            for pro in resultado["pros"]:
+                st.write(f"- {pro}")
+            
+            # Contras
+            st.markdown("🔹 **Contras do produto:**")
+            for contra in resultado["contras"]:
+                st.write(f"- {contra}")
+            
+            # Potencial de vendas
+            st.markdown("🔹 **Potencial de vendas:**")
+            st.write(f"**{resultado['potencial_vendas']}** — {resultado['justificativa_vendas']}")
+            
+            # Potencial de lucro
+            st.markdown("🔹 **Potencial de lucro:**")
+            st.write(f"**{resultado['potencial_lucro']}** — Frequência: {resultado['frequencia_compra']}")
+            
+            # O que pode fazer
+            st.markdown("🔹 **O que PODE fazer na divulgação:**")
+            for item in resultado["pode_fazer"]:
+                st.write(f"- {item}")
+            
+            # O que NÃO pode fazer
+            st.markdown("🔹 **O que NÃO PODE fazer:**")
+            for item in resultado["nao_pode_fazer"]:
+                st.write(f"- {item}")
+            
+            # Resumo da página de afiliado
+            st.markdown("🔹 **Resumo da página de afiliado:**")
+            st.write(f"- Tipo de comissão: {resultado['comissao_tipo']}")
+            st.write(f"- Modelo de pagamento: {resultado['modelo_pagamento']}")
+            st.write("- Observações: Sem acesso real à API — análise simulada com base no domínio.")
+            
+            # Opinião da MSSP
+            st.markdown("🔹 **Opinião da MSSP (parceira estratégica):**")
+            st.write(f"**Vale a pena continuar com este produto?** → **{resultado['recomendacao']}**")
+            st.write(resultado["explicacao_recomendacao"])
+            
+            st.markdown("---")
         
         col1, col2 = st.columns([1, 5])
         with col1:
@@ -484,7 +668,7 @@ elif pagina == "Ideias de Anúncio":
             st.text_area("", value=anuncio_en, height=180, key="anuncio_en")
 
 # ==============================
-# Página: Postar (ATUALIZADA COM HORÁRIOS FIXOS)
+# Página: Postar
 # ==============================
 elif pagina == "Postar":
     st.title("📤 Postar")
