@@ -1,7 +1,9 @@
 import streamlit as st
 import json
 import os
-from datetime import datetime
+import secrets
+import hashlib
+from datetime import datetime, timedelta
 
 # ==============================
 # Configuração inicial da página
@@ -17,6 +19,7 @@ st.set_page_config(
 # ==============================
 HISTORICO_ARQUIVO = "historico_afiliacao.json"
 DADOS_POSTAR_ARQUIVO = "dados_postar.json"
+COLABORADORES_ARQUIVO = "colaboradores.json"
 
 # ==============================
 # Funções de persistência
@@ -47,11 +50,42 @@ def salvar_dados_postar(dados):
     with open(DADOS_POSTAR_ARQUIVO, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=2)
 
+def carregar_colaboradores():
+    if os.path.exists(COLABORADORES_ARQUIVO):
+        try:
+            with open(COLABORADORES_ARQUIVO, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+                # Converter strings de data para objetos datetime
+                for colab in dados:
+                    colab["criado_em"] = datetime.fromisoformat(colab["criado_em"])
+                    colab["expira_em"] = datetime.fromisoformat(colab["expira_em"])
+                return dados
+        except Exception:
+            return []
+    return []
+
+def salvar_colaboradores(colaboradores):
+    # Converter datetime para string antes de salvar
+    dados_para_salvar = []
+    for colab in colaboradores:
+        colab_copy = colab.copy()
+        colab_copy["criado_em"] = colab["criado_em"].isoformat()
+        colab_copy["expira_em"] = colab["expira_em"].isoformat()
+        dados_para_salvar.append(colab_copy)
+    
+    with open(COLABORADORES_ARQUIVO, "w", encoding="utf-8") as f:
+        json.dump(dados_para_salvar, f, ensure_ascii=False, indent=2)
+
+def gerar_senha():
+    return secrets.token_urlsafe(12)
+
+def hash_senha(senha):
+    return hashlib.sha256(senha.encode()).hexdigest()
+
 # ==============================
 # Função do Motor Lógico da MSSP
 # ==============================
 def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=None):
-    # Detectar plataforma
     link_lower = link.lower() if link else ""
     if "clickbank" in link_lower:
         plataforma = "ClickBank"
@@ -66,7 +100,6 @@ def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=
     else:
         plataforma = "Outra / Não identificada"
     
-    # Aplicar regras de decisão
     criterios_aprovados = 0
     cvr_aprovado = cvr is not None and cvr >= 3
     epc_aprovado = epc is not None and epc >= 3
@@ -78,7 +111,6 @@ def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=
     if comissao_aprovado: criterios_aprovados += 1
     if gravidade_aprovado: criterios_aprovados += 1
     
-    # Classificação
     if criterios_aprovados >= 3:
         classificacao = "🟢 APROVAR"
     elif criterios_aprovados == 2:
@@ -86,7 +118,6 @@ def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=
     else:
         classificacao = "🔴 DESCARTAR"
     
-    # Pontos fortes e fracos
     pontos_fortes = []
     pontos_fracos = []
     
@@ -110,13 +141,11 @@ def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=
     else:
         pontos_fracos.append("Baixa demanda ou difícil de vender (gravidade <30)")
     
-    # Tipo de tráfego
     if epc_aprovado and comissao_aprovado:
         trafego_indicado = "Pago (Meta Ads, Google)"
     else:
         trafego_indicado = "Orgânico (YouTube, blogs, grupos)"
     
-    # Redes sociais
     if plataforma in ["Hotmart", "ClickBank"]:
         redes_adequadas = ["Instagram", "TikTok", "Facebook"]
         restricoes = [
@@ -133,7 +162,6 @@ def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=
         redes_adequadas = ["Instagram", "Facebook", "YouTube"]
         restricoes = ["Ver políticas da plataforma antes de anunciar"]
     
-    # Conclusão final
     if classificacao == "🟢 APROVAR":
         conclusao = "Vale a pena seguir com este produto. Alto potencial de lucro com risco controlado."
     elif classificacao == "🟡 TESTAR":
@@ -166,9 +194,9 @@ if "historico" not in st.session_state:
 if "dados_postar" not in st.session_state:
     st.session_state.dados_postar = carregar_dados_postar()
 
-# ==============================
-# Estado para navegação por etapas
-# ==============================
+if "colaboradores" not in st.session_state:
+    st.session_state.colaboradores = carregar_colaboradores()
+
 if "etapa_pesquisa" not in st.session_state:
     st.session_state.etapa_pesquisa = 1
 
@@ -181,7 +209,7 @@ if "dados_temporarios" not in st.session_state:
 st.sidebar.title("MSSP Afiliado")
 pagina = st.sidebar.radio(
     "Navegue pelas seções:",
-    ("Início", "Pesquisa de Produtos", "Ideias de Anúncio", "Postar", "Histórico", "Configurações"),
+    ("Início", "Pesquisa de Produtos", "Ideias de Anúncio", "Postar", "Histórico", "Colaboradores", "Configurações"),
     index=0
 )
 
@@ -203,12 +231,11 @@ if pagina == "Início":
     st.info("💡 Dica: Comece pela página **'Pesquisa de Produtos'** para analisar sua primeira oferta.")
 
 # ==============================
-# Página: Pesquisa de Produtos (COM MOTOR LÓGICO)
+# Página: Pesquisa de Produtos
 # ==============================
 elif pagina == "Pesquisa de Produtos":
     st.title("🔍 Pesquisa de Produtos")
     
-    # Etapa 1: Link do produto + Análise imediata
     if st.session_state.etapa_pesquisa == 1:
         st.subheader("Etapa 1/3: Link do Produto")
         link_produto = st.text_input(
@@ -217,7 +244,6 @@ elif pagina == "Pesquisa de Produtos":
             placeholder="https://exemplo.com/produto"
         )
         
-        # Campos opcionais para métricas
         st.markdown("### (Opcional) Métricas avançadas:")
         col1, col2, col3, col4 = st.columns(4)
         with col1:
@@ -229,7 +255,6 @@ elif pagina == "Pesquisa de Produtos":
         with col4:
             gravidade_input = st.number_input("Gravidade", min_value=0, value=0, step=1)
         
-        # Mostrar análise assim que o link for preenchido
         if link_produto.strip() or any([cvr_input > 0, epc_input > 0, comissao_input > 0, gravidade_input > 0]):
             cvr_val = cvr_input if cvr_input > 0 else None
             epc_val = epc_input if epc_input > 0 else None
@@ -248,47 +273,38 @@ elif pagina == "Pesquisa de Produtos":
             st.markdown("---")
             st.subheader("📊 Relatório Inteligente da MSSP")
             
-            # Plataforma
             st.markdown("🔹 **Plataforma identificada:**")
             st.write(resultado["plataforma"])
             
-            # Classificação
             st.markdown("🔹 **Classificação automática:**")
             st.subheader(resultado["classificacao"])
             
-            # Critérios
             st.markdown("🔹 **Critérios analisados:**")
             st.write(f"- CVR: {resultado['cvr']}% {'✅' if resultado['cvr'] and resultado['cvr'] >= 3 else '❌'}")
             st.write(f"- EPC: ${resultado['epc']} {'✅' if resultado['epc'] and resultado['epc'] >= 3 else '❌'}")
             st.write(f"- Comissão: ${resultado['comissao']} {'✅' if resultado['comissao'] and resultado['comissao'] >= 50 else '❌'}")
             st.write(f"- Gravidade: {resultado['gravidade']} {'✅' if resultado['gravidade'] and resultado['gravidade'] >= 30 else '❌'}")
             
-            # Pontos fortes
             if resultado["pontos_fortes"]:
                 st.markdown("🔹 **Pontos fortes:**")
                 for p in resultado["pontos_fortes"]:
                     st.write(f"- {p}")
             
-            # Pontos fracos
             if resultado["pontos_fracos"]:
                 st.markdown("🔹 **Pontos fracos:**")
                 for p in resultado["pontos_fracos"]:
                     st.write(f"- {p}")
             
-            # Tráfego indicado
             st.markdown("🔹 **Tipo de tráfego mais indicado:**")
             st.write(resultado["trafego_indicado"])
             
-            # Redes sociais
             st.markdown("🔹 **Redes sociais mais adequadas:**")
             st.write(", ".join(resultado["redes_adequadas"]))
             
-            # Restrições
             st.markdown("🔹 **Possíveis restrições de anúncios:**")
             for r in resultado["restricoes"]:
                 st.write(f"- {r}")
             
-            # Conclusão final
             st.markdown("🔹 **Conclusão final da MSSP (sua parceira de negócios):**")
             st.write(f"**{resultado['conclusao']}**")
             
@@ -312,7 +328,6 @@ elif pagina == "Pesquisa de Produtos":
         with col2:
             st.empty()
 
-    # Etapa 2: Palavras-chave e detalhes
     elif st.session_state.etapa_pesquisa == 2:
         st.subheader("Etapa 2/3: Detalhes do Produto")
         
@@ -386,7 +401,6 @@ elif pagina == "Pesquisa de Produtos":
         with col3:
             st.empty()
 
-    # Etapa 3: Confirmação e análise
     elif st.session_state.etapa_pesquisa == 3:
         st.subheader("Etapa 3/3: Confirmar e Analisar")
         
@@ -396,7 +410,7 @@ elif pagina == "Pesquisa de Produtos":
         st.markdown("**Detalhes:**")
         st.write(f"- Palavras-chave: {st.session_state.dados_temporarios['palavras_chave_input']}")
         st.write(f"- Plataforma: {st.session_state.dados_temporarios['plataforma']}")
-        st.write(f"- Tipo: {st.session_state.dados_temporios['tipo_produto']}")
+        st.write(f"- Tipo: {st.session_state.dados_temporarios['tipo_produto']}")
         st.write(f"- Comissão: {st.session_state.dados_temporarios['comissao_percentual']}%")
         st.write(f"- País: {st.session_state.dados_temporarios['pais']}")
         st.write(f"- Pagamento: {st.session_state.dados_temporarios['tipo_pagamento']}")
@@ -408,7 +422,6 @@ elif pagina == "Pesquisa de Produtos":
                 st.rerun()
         with col2:
             if st.button("✅ Analisar Produto"):
-                # Processar dados
                 palavras_lista = [p.strip() for p in st.session_state.dados_temporarios["palavras_chave_input"].split(",") if p.strip()]
                 pais_salvar = "Europa (todos os países)" if st.session_state.dados_temporarios["pais"].strip().lower() == "europa" else st.session_state.dados_temporarios["pais"].strip()
                 comissao = st.session_state.dados_temporarios["comissao_percentual"] if st.session_state.dados_temporarios["comissao_percentual"] > 0 else 1.0
@@ -432,7 +445,6 @@ elif pagina == "Pesquisa de Produtos":
                 st.session_state.historico.append(novo_registro)
                 salvar_historico(st.session_state.historico)
                 
-                # Limpar dados temporários
                 st.session_state.dados_temporarios = {}
                 st.session_state.etapa_pesquisa = 1
                 
@@ -474,7 +486,6 @@ elif pagina == "Ideias de Anúncio":
         if plataforma_anuncio_manual.strip():
             plataforma_anuncio = plataforma_anuncio_manual.strip()
     
-    # CTA editável com sugestões
     st.markdown("**Chamada para ação (CTA):**")
     cta_sugestoes = [
         "Comprar agora",
@@ -501,7 +512,6 @@ elif pagina == "Ideias de Anúncio":
         else:
             cta_final = cta_personalizado.strip() if cta_personalizado.strip() else "Comprar agora"
             
-            # Gerar anúncio com base no grau selecionado
             if grau_anuncio == "Conservador":
                 anuncio_pt = (
                     f"Conheça o {nome_produto}.\n\n"
@@ -566,7 +576,7 @@ elif pagina == "Ideias de Anúncio":
                     f"👉 {cta_final}\n"
                     f"[AFFILIATE LINK HERE]"
                 )
-            else:  # Longo
+            else:
                 anuncio_pt = (
                     f"Apresentamos com orgulho o incrível {nome_produto}!\n\n"
                     f"Depois de meses de testes e desenvolvimento, criamos uma solução que realmente resolve o seu problema.\n\n"
@@ -592,7 +602,6 @@ elif pagina == "Ideias de Anúncio":
                     f"#transformation #results"
                 )
             
-            # Salvar no histórico
             novo_registro = {
                 "tipo": "anuncio_v2",
                 "nome_produto": nome_produto.strip(),
@@ -606,7 +615,6 @@ elif pagina == "Ideias de Anúncio":
             st.session_state.historico.append(novo_registro)
             salvar_historico(st.session_state.historico)
             
-            # Mostrar os anúncios
             st.success("✅ Anúncios gerados com sucesso!")
             
             st.subheader("🇵🇹 Português")
@@ -622,10 +630,8 @@ elif pagina == "Postar":
     st.title("📤 Postar")
     st.caption("Configure suas credenciais e horários para postagens automáticas.")
     
-    # Carregar dados salvos
     dados = st.session_state.dados_postar
     
-    # Redes sociais
     st.subheader("📱 Redes Sociais")
     
     redes = ["YouTube", "Pinterest", "Instagram", "TikTok", "Facebook"]
@@ -641,7 +647,6 @@ elif pagina == "Postar":
             senha = st.text_input(f"{rede} - Senha:", type="password", value=valor_senha, key=f"{rede}_senha")
         dados_atualizados[rede] = {"usuario": usuario, "senha": senha}
     
-    # Horários de postagem
     st.subheader("⏰ Horários de Postagens Automáticas")
     horarios_padrao = dados.get("horarios_postagem", "07:00–09:00, 12:00–14:00, 18:00–21:00")
     horarios = st.text_area(
@@ -652,7 +657,6 @@ elif pagina == "Postar":
     )
     dados_atualizados["horarios_postagem"] = horarios
     
-    # Link de afiliado
     st.subheader("🔗 Link de Afiliado")
     link_afiliado_padrao = dados.get("link_afiliado", "")
     link_afiliado = st.text_input(
@@ -662,7 +666,6 @@ elif pagina == "Postar":
     )
     dados_atualizados["link_afiliado"] = link_afiliado
     
-    # Campo adicional
     st.subheader("📝 Informações Adicionais")
     info_extra_padrao = dados.get("info_extra", "")
     info_extra = st.text_area(
@@ -672,15 +675,11 @@ elif pagina == "Postar":
     )
     dados_atualizados["info_extra"] = info_extra
     
-    # Botão de salvar
     if st.button("💾 Salvar Configurações"):
-        # Atualizar st.session_state
         st.session_state.dados_postar = dados_atualizados
-        # Salvar no JSON
         salvar_dados_postar(dados_atualizados)
         st.success("✅ Todas as configurações foram salvas com sucesso! Os dados permanecerão após fechar e reabrir o app.")
     
-    # Aviso de segurança
     st.info(
         "🔒 **Importante:**\n\n"
         "- As senhas são armazenadas localmente no seu repositório GitHub.\n"
@@ -689,7 +688,7 @@ elif pagina == "Postar":
     )
 
 # ==============================
-# Página: Histórico (CORRIGIDA PARA EVITAR KeyError)
+# Página: Histórico
 # ==============================
 elif pagina == "Histórico":
     st.title("📜 Histórico")
@@ -706,7 +705,6 @@ elif pagina == "Histórico":
             
             if item["tipo"] == "pesquisa_v2":
                 st.markdown(f"**🔍 Análise de Produto** • {data_fmt}")
-                # Proteção contra KeyError
                 link_produto = item.get("link_produto", "Não informado")
                 st.write(f"- Link: {link_produto}")
                 if item.get("cvr"):
@@ -743,6 +741,93 @@ elif pagina == "Histórico":
             st.markdown("---")
     else:
         st.info("Nenhum registro ainda. Faça uma análise ou gere um anúncio para começar!")
+
+# ==============================
+# Página: Colaboradores (ATUALIZADA COM SUA LÓGICA)
+# ==============================
+elif pagina == "Colaboradores":
+    st.title("👥 Colaboradores")
+    st.caption("Adicione colaboradores para testar a MSSP com acesso limitado por 15 dias.")
+
+    # Carregar colaboradores do estado
+    if "colaboradores" not in st.session_state:
+        st.session_state.colaboradores = []
+
+    # Função para gerar senha aleatória segura
+    def gerar_senha():
+        return secrets.token_urlsafe(12)
+
+    # Função para criptografar senha (hash)
+    def hash_senha(senha):
+        return hashlib.sha256(senha.encode()).hexdigest()
+
+    # Formulário de cadastro
+    with st.form("form_colaborador"):
+        email = st.text_input("E-mail do colaborador")
+        submitted = st.form_submit_button("Adicionar colaborador")
+
+        if submitted and email:
+            if "@" not in email or "." not in email:
+                st.warning("⚠️ Formato de e-mail inválido.")
+            else:
+                # Verificar se já existe
+                existe = any(colab["email"] == email for colab in st.session_state.colaboradores)
+                if existe:
+                    st.warning("⚠️ Este e-mail já está cadastrado.")
+                else:
+                    senha_gerada = gerar_senha()
+                    senha_hash = hash_senha(senha_gerada)
+
+                    colaborador = {
+                        "email": email,
+                        "senha_hash": senha_hash,
+                        "criado_em": datetime.now(),
+                        "expira_em": datetime.now() + timedelta(days=15),
+                        "ativo": True
+                    }
+
+                    st.session_state.colaboradores.append(colaborador)
+                    salvar_colaboradores(st.session_state.colaboradores)
+
+                    st.success("✅ Colaborador adicionado com sucesso.")
+                    st.info("A senha foi gerada automaticamente pela MSSP e NÃO é exibida ao criador.")
+                    # Forçar recarga para mostrar novo campo vazio
+                    st.experimental_rerun()
+
+    # Listagem de colaboradores
+    st.subheader("📋 Colaboradores cadastrados")
+
+    if st.session_state.colaboradores:
+        for idx, colab in enumerate(st.session_state.colaboradores):
+            if not colab["ativo"]:
+                continue
+                
+            dias_restantes = (colab["expira_em"] - datetime.now()).days
+
+            st.markdown(f"""
+            **E-mail:** {colab['email']}  
+            **Status:** {"Ativo" if colab["ativo"] else "Inativo"}  
+            **Dias restantes:** {max(dias_restantes, 0)}
+            """)
+
+            if dias_restantes <= 0:
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button(f"🔄 Manter acesso – {colab['email']}", key=f"manter_{idx}"):
+                        colab["expira_em"] = datetime.now() + timedelta(days=15)
+                        salvar_colaboradores(st.session_state.colaboradores)
+                        st.success("✅ Acesso renovado por mais 15 dias.")
+                        st.experimental_rerun()
+                with col2:
+                    if st.button(f"❌ Remover acesso – {colab['email']}", key=f"remover_{idx}"):
+                        colab["ativo"] = False
+                        salvar_colaboradores(st.session_state.colaboradores)
+                        st.warning("⚠️ Acesso removido.")
+                        st.experimental_rerun()
+            
+            st.divider()
+    else:
+        st.info("Nenhum colaborador cadastrado ainda.")
 
 # ==============================
 # Página: Configurações
