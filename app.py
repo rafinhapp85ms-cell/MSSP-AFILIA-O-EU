@@ -95,6 +95,15 @@ if "redes" not in st.session_state:
     st.session_state.redes = carregar_redes()
 
 # ==============================
+# Estado para navegação por etapas
+# ==============================
+if "etapa_pesquisa" not in st.session_state:
+    st.session_state.etapa_pesquisa = 1
+
+if "dados_temporarios" not in st.session_state:
+    st.session_state.dados_temporarios = {}
+
+# ==============================
 # Menu lateral
 # ==============================
 st.sidebar.title("MSSP Afiliado")
@@ -122,77 +131,146 @@ if pagina == "Início":
     st.info("💡 Dica: Comece pela página **'Pesquisa de Produtos'** para analisar sua primeira oferta.")
 
 # ==============================
-# Página: Pesquisa de Produtos
+# Página: Pesquisa de Produtos (ATUALIZADA COM ETAPAS)
 # ==============================
 elif pagina == "Pesquisa de Produtos":
     st.title("🔍 Pesquisa de Produtos")
     
-    st.subheader("Analise uma nova oferta")
-    
-    palavras_chave_input = st.text_input(
-        "Palavras-chave (separadas por vírgula, máximo 7):",
-        placeholder="Ex: fone, bluetooth, sem fios, wireless"
-    )
-    
-    plataformas_predefinidas = ["Amazon", "ClickBank", "Awin", "CJ Affiliate", "Hotmart", "Outra"]
-    plataforma = st.selectbox(
-        "Plataforma:",
-        options=plataformas_predefinidas,
-        index=0
-    )
-    if plataforma == "Outra":
-        plataforma_manual = st.text_input("Digite a plataforma:", key="plataforma_manual")
-        if plataforma_manual.strip():
-            plataforma = plataforma_manual.strip()
-    
-    tipo_produto = st.selectbox(
-        "Tipo de produto:",
-        ["Digital", "Físico"]
-    )
-    
-    comissao_input = st.number_input(
-        "Comissão (%):",
-        min_value=0.0,
-        value=1.0,
-        step=0.5,
-        help="Valor mínimo automático: 1%"
-    )
-    comissao = comissao_input if comissao_input > 0 else 1.0
-    
-    pais = st.text_input(
-        "País alvo:",
-        placeholder="Ex: Portugal, Alemanha ou Europa"
-    )
-    
-    tipo_pagamento = st.selectbox(
-        "Tipo de pagamento:",
-        ["Normal", "Pagamento na entrega"]
-    )
-    
-    if st.button("✅ Analisar Produto"):
-        if not palavras_chave_input.strip() or not pais.strip():
-            st.warning("⚠️ Por favor, preencha palavras-chave e país.")
-        else:
-            palavras_lista = [p.strip() for p in palavras_chave_input.split(",") if p.strip()]
-            if len(palavras_lista) == 0:
-                st.warning("⚠️ Insira pelo menos uma palavra-chave.")
-            elif len(palavras_lista) > 7:
-                st.warning("⚠️ Limite máximo: 7 palavras-chave. Remova algumas para continuar.")
-            else:
-                pais_salvar = "Europa (todos os países)" if pais.strip().lower() == "europa" else pais.strip()
+    # Etapa 1: Link do produto
+    if st.session_state.etapa_pesquisa == 1:
+        st.subheader("Etapa 1/3: Link do Produto")
+        link_produto = st.text_input(
+            "Cole o link do produto:",
+            value=st.session_state.dados_temporarios.get("link_produto", ""),
+            placeholder="https://exemplo.com/produto"
+        )
+        
+        col1, col2 = st.columns([1, 5])
+        with col1:
+            if st.button("➡️ Avançar"):
+                if link_produto.strip():
+                    st.session_state.dados_temporarios["link_produto"] = link_produto.strip()
+                    st.session_state.etapa_pesquisa = 2
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Por favor, insira o link do produto.")
+        with col2:
+            st.empty()  # Espaço vazio para alinhamento
+
+    # Etapa 2: Palavras-chave e detalhes
+    elif st.session_state.etapa_pesquisa == 2:
+        st.subheader("Etapa 2/3: Detalhes do Produto")
+        
+        palavras_chave_input = st.text_input(
+            "Palavras-chave (separadas por vírgula, máximo 7):",
+            value=st.session_state.dados_temporarios.get("palavras_chave_input", ""),
+            placeholder="Ex: fone, bluetooth, sem fios"
+        )
+        
+        plataformas_predefinidas = ["Amazon", "ClickBank", "Awin", "CJ Affiliate", "Hotmart", "Outra"]
+        plataforma = st.selectbox(
+            "Plataforma:",
+            options=plataformas_predefinidas,
+            index=plataformas_predefinidas.index(st.session_state.dados_temporarios.get("plataforma", "Amazon")) if st.session_state.dados_temporarios.get("plataforma") in plataformas_predefinidas else 0
+        )
+        if plataforma == "Outra":
+            plataforma_manual = st.text_input("Digite a plataforma:", key="plataforma_manual")
+            if plataforma_manual.strip():
+                plataforma = plataforma_manual.strip()
+        
+        tipo_produto = st.selectbox(
+            "Tipo de produto:",
+            ["Digital", "Físico"],
+            index=["Digital", "Físico"].index(st.session_state.dados_temporarios.get("tipo_produto", "Digital"))
+        )
+        
+        comissao_input = st.number_input(
+            "Comissão (%):",
+            min_value=0.0,
+            value=float(st.session_state.dados_temporarios.get("comissao", 1.0)),
+            step=0.5,
+            help="Valor mínimo automático: 1%"
+        )
+        
+        pais = st.text_input(
+            "País alvo:",
+            value=st.session_state.dados_temporarios.get("pais", ""),
+            placeholder="Ex: Portugal, Alemanha ou Europa"
+        )
+        
+        tipo_pagamento = st.selectbox(
+            "Tipo de pagamento:",
+            ["Normal", "Pagamento na entrega"],
+            index=["Normal", "Pagamento na entrega"].index(st.session_state.dados_temporarios.get("tipo_pagamento", "Normal"))
+        )
+        
+        col1, col2, col3 = st.columns([1, 1, 4])
+        with col1:
+            if st.button("⬅️ Voltar"):
+                st.session_state.etapa_pesquisa = 1
+                st.rerun()
+        with col2:
+            if st.button("➡️ Avançar"):
+                if not palavras_chave_input.strip() or not pais.strip():
+                    st.warning("⚠️ Preencha palavras-chave e país.")
+                else:
+                    palavras_lista = [p.strip() for p in palavras_chave_input.split(",") if p.strip()]
+                    if len(palavras_lista) > 7:
+                        st.warning("⚠️ Limite máximo: 7 palavras-chave.")
+                    else:
+                        st.session_state.dados_temporarios.update({
+                            "palavras_chave_input": palavras_chave_input,
+                            "plataforma": plataforma,
+                            "tipo_produto": tipo_produto,
+                            "comissao": comissao_input,
+                            "pais": pais,
+                            "tipo_pagamento": tipo_pagamento
+                        })
+                        st.session_state.etapa_pesquisa = 3
+                        st.rerun()
+        with col3:
+            st.empty()
+
+    # Etapa 3: Confirmação e análise
+    elif st.session_state.etapa_pesquisa == 3:
+        st.subheader("Etapa 3/3: Confirmar e Analisar")
+        
+        st.markdown("**Link do produto:**")
+        st.code(st.session_state.dados_temporarios["link_produto"])
+        
+        st.markdown("**Detalhes:**")
+        st.write(f"- Palavras-chave: {st.session_state.dados_temporarios['palavras_chave_input']}")
+        st.write(f"- Plataforma: {st.session_state.dados_temporarios['plataforma']}")
+        st.write(f"- Tipo: {st.session_state.dados_temporarios['tipo_produto']}")
+        st.write(f"- Comissão: {st.session_state.dados_temporarios['comissao']}%")
+        st.write(f"- País: {st.session_state.dados_temporarios['pais']}")
+        st.write(f"- Pagamento: {st.session_state.dados_temporarios['tipo_pagamento']}")
+        
+        col1, col2, col3 = st.columns([1, 1, 4])
+        with col1:
+            if st.button("⬅️ Voltar"):
+                st.session_state.etapa_pesquisa = 2
+                st.rerun()
+        with col2:
+            if st.button("✅ Analisar Produto"):
+                # Processar dados
+                palavras_lista = [p.strip() for p in st.session_state.dados_temporarios["palavras_chave_input"].split(",") if p.strip()]
+                pais_salvar = "Europa (todos os países)" if st.session_state.dados_temporarios["pais"].strip().lower() == "europa" else st.session_state.dados_temporarios["pais"].strip()
+                comissao = st.session_state.dados_temporarios["comissao"] if st.session_state.dados_temporarios["comissao"] > 0 else 1.0
                 
-                score = calcular_score(comissao, tipo_produto, tipo_pagamento, pais_salvar)
+                score = calcular_score(comissao, st.session_state.dados_temporarios["tipo_produto"], st.session_state.dados_temporarios["tipo_pagamento"], pais_salvar)
                 classificacao = classificar_score(score)
-                explicacao = gerar_explicacao(comissao, tipo_produto, tipo_pagamento, pais_salvar, score)
+                explicacao = gerar_explicacao(comissao, st.session_state.dados_temporarios["tipo_produto"], st.session_state.dados_temporarios["tipo_pagamento"], pais_salvar, score)
                 
                 novo_registro = {
                     "tipo": "pesquisa_v2",
+                    "link_produto": st.session_state.dados_temporarios["link_produto"],
                     "palavras_chave": palavras_lista,
-                    "plataforma": plataforma,
-                    "tipo_produto": tipo_produto,
+                    "plataforma": st.session_state.dados_temporarios["plataforma"],
+                    "tipo_produto": st.session_state.dados_temporarios["tipo_produto"],
                     "comissao": comissao,
                     "pais": pais_salvar,
-                    "tipo_pagamento": tipo_pagamento,
+                    "tipo_pagamento": st.session_state.dados_temporarios["tipo_pagamento"],
                     "score": score,
                     "classificacao": classificacao,
                     "explicacao": explicacao,
@@ -202,10 +280,16 @@ elif pagina == "Pesquisa de Produtos":
                 st.session_state.historico.append(novo_registro)
                 salvar_historico(st.session_state.historico)
                 
+                # Limpar dados temporários
+                st.session_state.dados_temporarios = {}
+                st.session_state.etapa_pesquisa = 1
+                
                 st.success("✅ Análise concluída!")
                 st.markdown(f"**Score:** {score}/100")
                 st.markdown(f"**Classificação:** {classificacao}")
                 st.markdown(f"**Explicação:** {explicacao}")
+        with col3:
+            st.empty()
 
 # ==============================
 # Página: Ideias de Anúncio
@@ -383,7 +467,7 @@ elif pagina == "Ideias de Anúncio":
             st.text_area("", value=anuncio_en, height=180, key="anuncio_en")
 
 # ==============================
-# Página: Postar (NOVA)
+# Página: Postar (ATUALIZADA)
 # ==============================
 elif pagina == "Postar":
     st.title("📤 Postar")
@@ -431,8 +515,8 @@ elif pagina == "Postar":
         placeholder="Ex: garantia, benefícios, depoimentos..."
     )
     
-    # Botão de salvar
-    if st.button("💾 Salvar Configurações"):
+    # Botão de postar (gatilho futuro)
+    if st.button("🚀 Postar"):
         # Validar horário (básico)
         if horario_postagem and ":" not in horario_postagem:
             st.warning("⚠️ Formato de horário inválido. Use HH:MM (ex: 09:00).")
@@ -449,7 +533,8 @@ elif pagina == "Postar":
             st.session_state.redes = dados_completos
             salvar_redes(dados_completos)
             
-            st.success("✅ Configurações salvas com sucesso!")
+            st.success("✅ Configurações salvas! Pronto para postagem futura.")
+            st.info("ℹ️ A automação real será ativada em atualizações futuras com APIs oficiais.")
     
     # Aviso de segurança
     st.info(
@@ -477,6 +562,7 @@ elif pagina == "Histórico":
             
             if item["tipo"] == "pesquisa_v2":
                 st.markdown(f"**🔍 Análise de Produto** • {data_fmt}")
+                st.write(f"- Link: {item['link_produto']}")
                 st.write(f"- Palavras-chave: {', '.join(item['palavras_chave'])}")
                 st.write(f"- Plataforma: {item['plataforma']}")
                 st.write(f"- Tipo: {item['tipo_produto']}")
