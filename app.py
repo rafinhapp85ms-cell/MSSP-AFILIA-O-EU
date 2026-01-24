@@ -396,7 +396,7 @@ elif pagina == "Pesquisa de Produtos":
         st.markdown("**Detalhes:**")
         st.write(f"- Palavras-chave: {st.session_state.dados_temporarios['palavras_chave_input']}")
         st.write(f"- Plataforma: {st.session_state.dados_temporarios['plataforma']}")
-        st.write(f"- Tipo: {st.session_state.dados_temporarios['tipo_produto']}")
+        st.write(f"- Tipo: {st.session_state.dados_temporios['tipo_produto']}")
         st.write(f"- Comissão: {st.session_state.dados_temporarios['comissao_percentual']}%")
         st.write(f"- País: {st.session_state.dados_temporarios['pais']}")
         st.write(f"- Pagamento: {st.session_state.dados_temporarios['tipo_pagamento']}")
@@ -689,7 +689,7 @@ elif pagina == "Postar":
     )
 
 # ==============================
-# Página: Histórico
+# Página: Histórico (CORRIGIDA PARA EVITAR KeyError)
 # ==============================
 elif pagina == "Histórico":
     st.title("📜 Histórico")
@@ -706,7 +706,9 @@ elif pagina == "Histórico":
             
             if item["tipo"] == "pesquisa_v2":
                 st.markdown(f"**🔍 Análise de Produto** • {data_fmt}")
-                st.write(f"- Link: {item['link_produto']}")
+                # Proteção contra KeyError
+                link_produto = item.get("link_produto", "Não informado")
+                st.write(f"- Link: {link_produto}")
                 if item.get("cvr"):
                     st.write(f"- CVR: {item['cvr']}%")
                 if item.get("epc"):
@@ -715,12 +717,12 @@ elif pagina == "Histórico":
                     st.write(f"- Comissão: ${item['comissao_valor']}")
                 if item.get("gravidade"):
                     st.write(f"- Gravidade: {item['gravidade']}")
-                st.write(f"- Palavras-chave: {', '.join(item['palavras_chave'])}")
-                st.write(f"- Plataforma: {item['plataforma']}")
-                st.write(f"- Tipo: {item['tipo_produto']}")
-                st.write(f"- Comissão (%): {item['comissao']}%")
-                st.write(f"- País: {item['pais']}")
-                st.write(f"- Pagamento: {item['tipo_pagamento']}")
+                st.write(f"- Palavras-chave: {', '.join(item.get('palavras_chave', []))}")
+                st.write(f"- Plataforma: {item.get('plataforma', 'Não identificada')}")
+                st.write(f"- Tipo: {item.get('tipo_produto', 'Não identificado')}")
+                st.write(f"- Comissão (%): {item.get('comissao', 0)}%")
+                st.write(f"- País: {item.get('pais', 'Não informado')}")
+                st.write(f"- Pagamento: {item.get('tipo_pagamento', 'Não informado')}")
                 
             elif item["tipo"] == "anuncio_v2":
                 st.markdown(f"**✍️ Anúncio Bilingue** • {data_fmt}")
