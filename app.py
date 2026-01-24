@@ -17,6 +17,7 @@ st.set_page_config(
 # ==============================
 HISTORICO_ARQUIVO = "historico_afiliacao.json"
 REDES_SOCIAIS_ARQUIVO = "redes_sociais.json"
+HORARIOS_ARQUIVO = "horarios_postagem.json"
 
 # ==============================
 # Funções de persistência
@@ -46,6 +47,19 @@ def carregar_redes_sociais():
 def salvar_redes_sociais(dados):
     with open(REDES_SOCIAIS_ARQUIVO, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=2)
+
+def carregar_horarios():
+    if os.path.exists(HORARIOS_ARQUIVO):
+        try:
+            with open(HORARIOS_ARQUIVO, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return "07:00–09:00, 12:00–14:00, 18:00–21:00"
+    return "07:00–09:00, 12:00–14:00, 18:00–21:00"
+
+def salvar_horarios(horarios):
+    with open(HORARIOS_ARQUIVO, "w", encoding="utf-8") as f:
+        json.dump(horarios, f, ensure_ascii=False)
 
 def calcular_score(comissao, tipo_produto, tipo_pagamento, pais):
     score = 50
@@ -93,6 +107,9 @@ if "historico" not in st.session_state:
 
 if "redes_sociais" not in st.session_state:
     st.session_state.redes_sociais = carregar_redes_sociais()
+
+if "horarios_postagem" not in st.session_state:
+    st.session_state.horarios_postagem = carregar_horarios()
 
 # ==============================
 # Estado para navegação por etapas
@@ -467,14 +484,15 @@ elif pagina == "Ideias de Anúncio":
             st.text_area("", value=anuncio_en, height=180, key="anuncio_en")
 
 # ==============================
-# Página: Postar (CORRIGIDA PARA PERSISTÊNCIA)
+# Página: Postar (ATUALIZADA COM HORÁRIOS FIXOS)
 # ==============================
 elif pagina == "Postar":
     st.title("📤 Postar")
-    st.caption("Configure suas credenciais e informações para futuras postagens automáticas.")
+    st.caption("Configure suas credenciais e horários para postagens automáticas.")
     
     # Carregar dados salvos
     dados_atuais = st.session_state.redes_sociais
+    horarios_atuais = st.session_state.horarios_postagem
     
     # Redes sociais
     st.subheader("📱 Redes Sociais")
@@ -492,13 +510,13 @@ elif pagina == "Postar":
             senha = st.text_input(f"{rede} - Senha:", type="password", value=valor_senha, key=f"{rede}_senha")
         dados_redes[rede] = {"usuario": usuario, "senha": senha}
     
-    # Horário de postagens
-    st.subheader("⏰ Horário de Postagens Automáticas")
-    horario_padrao = dados_atuais.get("horario_postagem", "09:00")
-    horario_postagem = st.text_input(
-        "Horário diário (formato HH:MM):",
-        value=horario_padrao,
-        placeholder="Ex: 09:00, 15:30"
+    # Horários de postagem (AUTOMATIZADO)
+    st.subheader("⏰ Horários de Postagens Automáticas")
+    horarios_editaveis = st.text_area(
+        "Horários de pico para todas as redes (formato sugerido: HH:MM–HH:MM, separados por vírgula):",
+        value=horarios_atuais,
+        height=80,
+        key="horarios_input"
     )
     
     # Link de afiliado
@@ -519,14 +537,18 @@ elif pagina == "Postar":
     
     # Botão de salvar
     if st.button("💾 Salvar Configurações"):
-        # Validar horário (básico)
-        if horario_postagem and ":" not in horario_postagem:
-            st.warning("⚠️ Formato de horário inválido. Use HH:MM (ex: 09:00).")
+        # Validar formato básico (opcional)
+        if not horarios_editaveis.strip():
+            st.warning("⚠️ Por favor, insira pelo menos um horário.")
         else:
-            # Montar estrutura completa
+            # Atualizar horários na sessão e arquivo
+            st.session_state.horarios_postagem = horarios_editaveis
+            salvar_horarios(horarios_editaveis)
+            
+            # Montar estrutura completa das redes
             dados_completos = {
                 "redes": dados_redes,
-                "horario_postagem": horario_postagem,
+                "horario_postagem": horarios_editaveis,
                 "link_afiliado": link_afiliado,
                 "info_extra": info_extra
             }
