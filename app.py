@@ -85,8 +85,41 @@ def carregar_estado():
             with open(STATE_ARQUIVO, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
-            return {}
-    return {}
+            # ❌ Erro crítico: state.json ausente → Rafael recria
+            estado_padrao = {
+                "versao": "1.0",
+                "modulos": {
+                    "pesquisa_produtos": True,
+                    "ideias_anuncio": True,
+                    "postar": True,
+                    "colaboradores": True
+                },
+                "tarefas_pendentes": [],
+                "logs": [],
+                "status_automacao": "desativada",
+                "ultimo_acesso": None
+            }
+            salvar_estado(estado_padrao)
+            st.error("❌ Caralho, o state.json sumiu! Relaxa, já recriei tudo certinho.")
+            return estado_padrao
+    else:
+        # ❌ Arquivo não existe → Rafael cria
+        estado_padrao = {
+            "versao": "1.0",
+            "modulos": {
+                "pesquisa_produtos": True,
+                "ideias_anuncio": True,
+                "postar": True,
+                "colaboradores": True
+            },
+            "tarefas_pendentes": [],
+            "logs": [],
+            "status_automacao": "desativada",
+            "ultimo_acesso": None
+        }
+        salvar_estado(estado_padrao)
+        st.warning("⚠️ Opa! state.json não existia. Já criei pra você, parceiro.")
+        return estado_padrao
 
 def salvar_estado(estado):
     with open(STATE_ARQUIVO, "w", encoding="utf-8") as f:
@@ -159,7 +192,7 @@ MSSP"""
         
         return True
     except Exception as e:
-        st.error(f"Erro ao enviar e-mail: {str(e)}")
+        st.error(f"❌ Falha ao enviar e-mail: {str(e)}")
         return False
 
 def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=None):
@@ -911,60 +944,62 @@ elif pagina == "Colaboradores":
         st.info("Nenhum colaborador cadastrado ainda.")
 
 # ==============================
-# Página: Rafael (NOVO MENU)
+# Página: Rafael (CÉREBRO INTERNO)
 # ==============================
 elif pagina == "Rafael":
     st.title("🧠 Rafael — Cérebro Interno da MSSP")
-    st.caption("Sou seu supervisor interno. Falo com clareza, registro tudo e organizo prioridades.")
+    st.caption("Sou seu parceiro, guardião e resolvedor. Falo direto, aprendo rápido e protejo a MSSP.")
 
-    # Carregar histórico de mensagens
+    # Carregar histórico
     historico = st.session_state.rafael_historico
 
-    # Mostrar histórico
+    # Mostrar últimas interações
     if historico:
-        st.subheader("📜 Histórico de Interações")
-        for msg in reversed(historico[-5:]):  # Mostrar últimas 5
+        st.subheader("📜 Últimas conversas")
+        for msg in reversed(historico[-3:]):
             st.markdown(f"**Você:** {msg['usuario']}")
             st.markdown(f"**Rafael:** {msg['resposta']}")
             st.markdown("---")
 
     # Caixa de entrada
-    st.subheader("💬 Fale comigo")
-    entrada_usuario = st.text_input("Sua mensagem:", placeholder="Ex: O que falta implementar?")
+    st.subheader("💬 Me fala o que tá rolando")
+    entrada_usuario = st.text_input("Sua mensagem:", placeholder="Ex: O que falta? Tem erro? Tá lindo?")
     
     if st.button("Enviar"):
         if entrada_usuario.strip():
-            # Gerar resposta inteligente
-            progresso = []
-            pendencias = []
-            sugestoes = []
-
-            # Verificar módulos
-            modulos_ativos = st.session_state.estado_mssp.get("modulos", {})
-            if modulos_ativos.get("colaboradores", False):
-                progresso.append("✅ Módulo de Colaboradores: ativo com envio de e-mail real")
+            # ✅ Rafael analisa o estado atual
+            modulos = st.session_state.estado_mssp.get("modulos", {})
+            automacao = st.session_state.estado_mssp.get("status_automacao", "desativada")
+            
+            # Mensagem de resposta com personalidade
+            if "erro" in entrada_usuario.lower() or "falhou" in entrada_usuario.lower():
+                resposta = "❌ Caralho, deu ruim? Me mostra o erro que eu resolvo na hora."
+            elif "tá lindo" in entrada_usuario.lower() or "bom" in entrada_usuario.lower():
+                resposta = "✅ Tá lindo, parceiro! Bora resolver o próximo desafio?"
             else:
-                pendencias.append("❌ Módulo de Colaboradores desativado")
-
-            # Verificar automações
-            if st.session_state.estado_mssp.get("status_automacao") == "desativada":
-                pendencias.append("⚠️ Automação externa ainda não iniciada")
-                sugestoes.append("Priorize integração com APIs de redes sociais")
-
-            # Verificar state.json
-            if os.path.exists("state.json"):
-                progresso.append("✅ state.json configurado")
-            else:
-                pendencias.append("❌ state.json ausente")
-
-            # Montar resposta
-            resposta = "**Análise atual da MSSP:**\n\n"
-            if progresso:
-                resposta += "**O que foi feito:**\n" + "\n".join(f"- {p}" for p in progresso) + "\n\n"
-            if pendencias:
-                resposta += "**O que falta implementar:**\n" + "\n".join(f"- {p}" for p in pendencias) + "\n\n"
-            if sugestoes:
-                resposta += "**Sugestões de melhoria:**\n" + "\n".join(f"- {s}" for s in sugestoes)
+                # Análise inteligente
+                progresso = []
+                pendencias = []
+                
+                if modulos.get("colaboradores"):
+                    progresso.append("Módulo de Colaboradores: ativo com envio real de e-mail")
+                else:
+                    pendencias.append("Módulo de Colaboradores desativado")
+                
+                if automacao == "desativada":
+                    pendencias.append("Automação externa ainda não iniciada")
+                
+                if os.path.exists("state.json"):
+                    progresso.append("state.json configurado")
+                else:
+                    pendencias.append("state.json ausente — mas já recriei automaticamente")
+                
+                resposta = "**Minha análise atual:**\n\n"
+                if progresso:
+                    resposta += "✅ **Feito:**\n" + "\n".join(f"- {p}" for p in progresso) + "\n\n"
+                if pendencias:
+                    resposta += "⚠️ **Falta fazer:**\n" + "\n".join(f"- {p}" for p in pendencias) + "\n\n"
+                resposta += "Quer que eu resolva agora ou só registre por enquanto?"
 
             # Salvar no histórico
             nova_msg = {
@@ -975,11 +1010,10 @@ elif pagina == "Rafael":
             historico.append(nova_msg)
             st.session_state.rafael_historico = historico
             salvar_rafael_historico(historico)
-
             st.rerun()
 
-    # Status atual
-    st.subheader("📊 Status Atual")
+    # Status em tempo real
+    st.subheader("📊 Status da MSSP")
     estado = st.session_state.estado_mssp
     st.write(f"- **Versão:** {estado.get('versao', 'Desconhecida')}")
     st.write(f"- **Automação:** {estado.get('status_automacao', 'Desconhecido')}")
