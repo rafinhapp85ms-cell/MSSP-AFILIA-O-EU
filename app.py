@@ -85,7 +85,6 @@ def carregar_estado():
             with open(STATE_ARQUIVO, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
-            # ❌ Erro crítico: state.json ausente → Rafael recria
             estado_padrao = {
                 "versao": "1.0",
                 "modulos": {
@@ -103,7 +102,6 @@ def carregar_estado():
             st.error("❌ Caralho, o state.json sumiu! Relaxa, já recriei tudo certinho.")
             return estado_padrao
     else:
-        # ❌ Arquivo não existe → Rafael cria
         estado_padrao = {
             "versao": "1.0",
             "modulos": {
@@ -325,7 +323,7 @@ if "rafael_historico" not in st.session_state:
 st.sidebar.title("MSSP Afiliado")
 pagina = st.sidebar.radio(
     "Navegue pelas seções:",
-    ("Início", "Pesquisa de Produtos", "Ideias de Anúncio", "Postar", "Histórico", "Colaboradores", "Rafael", "Configurações"),
+    ("Início", "Pesquisa de Produtos", "Ideias de Anúncio", "Postar", "Histórico", "Colaboradores", "Rafinha", "Configurações"),
     index=0
 )
 
@@ -944,80 +942,109 @@ elif pagina == "Colaboradores":
         st.info("Nenhum colaborador cadastrado ainda.")
 
 # ==============================
-# Página: Rafael (CÉREBRO INTERNO)
+# Página: Rafinha (CÉREBRO INTERNO FIXO)
 # ==============================
-elif pagina == "Rafael":
-    st.title("🧠 Rafael — Cérebro Interno da MSSP")
+elif pagina == "Rafinha":
+    st.title("🧠 Rafinha — Cérebro Interno da MSSP")
     st.caption("Sou seu parceiro, guardião e resolvedor. Falo direto, aprendo rápido e protejo a MSSP.")
 
     # Carregar histórico
     historico = st.session_state.rafael_historico
 
-    # Mostrar últimas interações
-    if historico:
-        st.subheader("📜 Últimas conversas")
-        for msg in reversed(historico[-3:]):
-            st.markdown(f"**Você:** {msg['usuario']}")
-            st.markdown(f"**Rafael:** {msg['resposta']}")
-            st.markdown("---")
-
-    # Caixa de entrada
-    st.subheader("💬 Me fala o que tá rolando")
-    entrada_usuario = st.text_input("Sua mensagem:", placeholder="Ex: O que falta? Tem erro? Tá lindo?")
-    
-    if st.button("Enviar"):
-        if entrada_usuario.strip():
-            # ✅ Rafael analisa o estado atual
-            modulos = st.session_state.estado_mssp.get("modulos", {})
-            automacao = st.session_state.estado_mssp.get("status_automacao", "desativada")
-            
-            # Mensagem de resposta com personalidade
-            if "erro" in entrada_usuario.lower() or "falhou" in entrada_usuario.lower():
-                resposta = "❌ Caralho, deu ruim? Me mostra o erro que eu resolvo na hora."
-            elif "tá lindo" in entrada_usuario.lower() or "bom" in entrada_usuario.lower():
-                resposta = "✅ Tá lindo, parceiro! Bora resolver o próximo desafio?"
+    # === CAIXA DE CONVERSA FIXA ===
+    # Container principal com altura fixa
+    chat_container = st.container()
+    with chat_container:
+        # Área rolável para mensagens
+        chat_placeholder = st.empty()
+        with chat_placeholder.container():
+            if historico:
+                # Mostrar mensagens em ordem cronológica (mais recente no final)
+                for msg in historico[-20:]:  # Limitar a 20 mensagens
+                    # Mensagem do usuário
+                    st.markdown(
+                        f'<div style="background-color:#e3f2fd; padding:10px; border-radius:10px; margin:5px 0; color:#0d47a1;">'
+                        f'<b>Você:</b> {msg["usuario"]}'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+                    # Resposta do Rafinha
+                    st.markdown(
+                        f'<div style="background-color:#f1f8e9; padding:10px; border-radius:10px; margin:5px 0; color:#1b5e20;">'
+                        f'<b>Rafinha:</b> {msg["resposta"]}'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+                    st.markdown("---")
             else:
-                # Análise inteligente
-                progresso = []
-                pendencias = []
-                
-                if modulos.get("colaboradores"):
-                    progresso.append("Módulo de Colaboradores: ativo com envio real de e-mail")
-                else:
-                    pendencias.append("Módulo de Colaboradores desativado")
-                
-                if automacao == "desativada":
-                    pendencias.append("Automação externa ainda não iniciada")
-                
-                if os.path.exists("state.json"):
-                    progresso.append("state.json configurado")
-                else:
-                    pendencias.append("state.json ausente — mas já recriei automaticamente")
-                
-                resposta = "**Minha análise atual:**\n\n"
-                if progresso:
-                    resposta += "✅ **Feito:**\n" + "\n".join(f"- {p}" for p in progresso) + "\n\n"
-                if pendencias:
-                    resposta += "⚠️ **Falta fazer:**\n" + "\n".join(f"- {p}" for p in pendencias) + "\n\n"
-                resposta += "Quer que eu resolva agora ou só registre por enquanto?"
+                st.info("💬 Nenhuma conversa ainda. Me fala o que tá rolando!")
 
-            # Salvar no histórico
-            nova_msg = {
-                "usuario": entrada_usuario.strip(),
-                "resposta": resposta,
-                "data_hora": datetime.now().isoformat()
-            }
-            historico.append(nova_msg)
-            st.session_state.rafael_historico = historico
-            salvar_rafael_historico(historico)
-            st.rerun()
+    # === CAMPO DE DIGITAÇÃO FIXO NA PARTE INFERIOR ===
+    st.markdown("<br>", unsafe_allow_html=True)
+    input_container = st.container()
+    with input_container:
+        entrada_usuario = st.text_input(
+            "Sua mensagem:",
+            placeholder="Ex: O que falta? Tem erro? Tá lindo?",
+            key="input_usuario"
+        )
+        col1, col2 = st.columns([1, 5])
+        with col1:
+            enviar_btn = st.button("Enviar", key="enviar_mensagem")
+        with col2:
+            st.empty()
 
-    # Status em tempo real
-    st.subheader("📊 Status da MSSP")
+    # Processar envio
+    if enviar_btn and entrada_usuario.strip():
+        # Gerar resposta do Rafinha
+        modulos = st.session_state.estado_mssp.get("modulos", {})
+        automacao = st.session_state.estado_mssp.get("status_automacao", "desativada")
+        
+        if "erro" in entrada_usuario.lower() or "falhou" in entrada_usuario.lower():
+            resposta = "❌ Caralho, deu ruim? Me mostra o erro que eu resolvo na hora."
+        elif "tá lindo" in entrada_usuario.lower() or "bom" in entrada_usuario.lower():
+            resposta = "✅ Tá lindo, parceiro! Bora resolver o próximo desafio?"
+        else:
+            progresso = []
+            pendencias = []
+            
+            if modulos.get("colaboradores"):
+                progresso.append("Módulo de Colaboradores: ativo com envio real de e-mail")
+            else:
+                pendencias.append("Módulo de Colaboradores desativado")
+            
+            if automacao == "desativada":
+                pendencias.append("Automação externa ainda não iniciada")
+            
+            if os.path.exists("state.json"):
+                progresso.append("state.json configurado")
+            else:
+                pendencias.append("state.json ausente — mas já recriei automaticamente")
+            
+            resposta = "**Minha análise atual:**\n\n"
+            if progresso:
+                resposta += "✅ **Feito:**\n" + "\n".join(f"- {p}" for p in progresso) + "\n\n"
+            if pendencias:
+                resposta += "⚠️ **Falta fazer:**\n" + "\n".join(f"- {p}" for p in pendencias) + "\n\n"
+            resposta += "Quer que eu resolva agora ou só registre por enquanto?"
+
+        # Salvar no histórico
+        nova_msg = {
+            "usuario": entrada_usuario.strip(),
+            "resposta": resposta,
+            "data_hora": datetime.now().isoformat()
+        }
+        historico.append(nova_msg)
+        st.session_state.rafael_historico = historico
+        salvar_rafael_historico(historico)
+        st.rerun()
+
+    # Status em tempo real (fixo no topo)
+    st.sidebar.markdown("### 📊 Status da MSSP")
     estado = st.session_state.estado_mssp
-    st.write(f"- **Versão:** {estado.get('versao', 'Desconhecida')}")
-    st.write(f"- **Automação:** {estado.get('status_automacao', 'Desconhecido')}")
-    st.write(f"- **Módulos ativos:** {sum(1 for v in estado.get('modulos', {}).values() if v)}")
+    st.sidebar.write(f"**Versão:** {estado.get('versao', 'Desconhecida')}")
+    st.sidebar.write(f"**Automação:** {estado.get('status_automacao', 'Desconhecido')}")
+    st.sidebar.write(f"**Módulos ativos:** {sum(1 for v in estado.get('modulos', {}).values() if v)}")
 
 # ==============================
 # Página: Configurações
