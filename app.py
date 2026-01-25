@@ -700,6 +700,715 @@ elif pagina == "Ideias de Anúncio":
                     f"- Garantia de 30 dias\n"
                     f"- Entrega imediata\n\n"
                     f"👉 {cta_final} e transforme sua vida hoje mesmo!\n"
+                    f"[LINK DE✅ **Código atualizado com a caixa de mensagens fixa do Rafinha — exatamente conforme suas regras.**
+
+---
+
+### 📦 **Substitua TODO o conteúdo do `app.py` por este código:**
+
+```python
+import streamlit as st
+import json
+import os
+import secrets
+import hashlib
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime, timedelta
+
+# ==============================
+# Configuração inicial da página
+# ==============================
+st.set_page_config(
+    page_title="MSSP Afiliado",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ==============================
+# Arquivos de dados
+# ==============================
+HISTORICO_ARQUIVO = "historico_afiliacao.json"
+DADOS_POSTAR_ARQUIVO = "dados_postar.json"
+COLABORADORES_ARQUIVO = "colaboradores.json"
+STATE_ARQUIVO = "state.json"
+RAFAEL_HISTORICO_ARQUIVO = "rafael_historico.json"
+
+# ==============================
+# Funções de persistência
+# ==============================
+def carregar_historico():
+    if os.path.exists(HISTORICO_ARQUIVO):
+        try:
+            with open(HISTORICO_ARQUIVO, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def salvar_historico(historico):
+    with open(HISTORICO_ARQUIVO, "w", encoding="utf-8") as f:
+        json.dump(historico, f, ensure_ascii=False, indent=2)
+
+def carregar_dados_postar():
+    if os.path.exists(DADOS_POSTAR_ARQUIVO):
+        try:
+            with open(DADOS_POSTAR_ARQUIVO, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def salvar_dados_postar(dados):
+    with open(DADOS_POSTAR_ARQUIVO, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=2)
+
+def carregar_colaboradores():
+    if os.path.exists(COLABORADORES_ARQUIVO):
+        try:
+            with open(COLABORADORES_ARQUIVO, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+                for colab in dados:
+                    colab["criado_em"] = datetime.fromisoformat(colab["criado_em"])
+                    colab["expira_em"] = datetime.fromisoformat(colab["expira_em"])
+                return dados
+        except Exception:
+            return []
+    return []
+
+def salvar_colaboradores(colaboradores):
+    dados_para_salvar = []
+    for colab in colaboradores:
+        colab_copy = colab.copy()
+        colab_copy["criado_em"] = colab["criado_em"].isoformat()
+        colab_copy["expira_em"] = colab["expira_em"].isoformat()
+        dados_para_salvar.append(colab_copy)
+    
+    with open(COLABORADORES_ARQUIVO, "w", encoding="utf-8") as f:
+        json.dump(dados_para_salvar, f, ensure_ascii=False, indent=2)
+
+def carregar_estado():
+    if os.path.exists(STATE_ARQUIVO):
+        try:
+            with open(STATE_ARQUIVO, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            estado_padrao = {
+                "versao": "1.0",
+                "modulos": {
+                    "pesquisa_produtos": True,
+                    "ideias_anuncio": True,
+                    "postar": True,
+                    "colaboradores": True
+                },
+                "tarefas_pendentes": [],
+                "logs": [],
+                "status_automacao": "desativada",
+                "ultimo_acesso": None
+            }
+            salvar_estado(estado_padrao)
+            st.error("❌ Caralho, o state.json sumiu! Relaxa, já recriei tudo certinho.")
+            return estado_padrao
+    else:
+        estado_padrao = {
+            "versao": "1.0",
+            "modulos": {
+                "pesquisa_produtos": True,
+                "ideias_anuncio": True,
+                "postar": True,
+                "colaboradores": True
+            },
+            "tarefas_pendentes": [],
+            "logs": [],
+            "status_automacao": "desativada",
+            "ultimo_acesso": None
+        }
+        salvar_estado(estado_padrao)
+        st.warning("⚠️ Opa! state.json não existia. Já criei pra você, parceiro.")
+        return estado_padrao
+
+def salvar_estado(estado):
+    with open(STATE_ARQUIVO, "w", encoding="utf-8") as f:
+        json.dump(estado, f, ensure_ascii=False, indent=2)
+
+def carregar_rafael_historico():
+    if os.path.exists(RAFAEL_HISTORICO_ARQUIVO):
+        try:
+            with open(RAFAEL_HISTORICO_ARQUIVO, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def salvar_rafael_historico(historico):
+    with open(RAFAEL_HISTORICO_ARQUIVO, "w", encoding="utf-8") as f:
+        json.dump(historico, f, ensure_ascii=False, indent=2)
+
+def gerar_senha_segura(tamanho=12):
+    letras = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    numeros = "0123456789"
+    simbolos = "!@#$%&*"
+    todos = letras + numeros + simbolos
+    senha = [
+        secrets.choice(letras.upper()),
+        secrets.choice(letras.lower()),
+        secrets.choice(numeros),
+        secrets.choice(simbolos)
+    ]
+    for _ in range(tamanho - 4):
+        senha.append(secrets.choice(todos))
+    secrets.SystemRandom().shuffle(senha)
+    return ''.join(senha)
+
+def hash_senha(senha):
+    return hashlib.sha256(senha.encode()).hexdigest()
+
+def enviar_email_colaborador(email_destino, nome_colab, senha_gerada):
+    try:
+        EMAIL_USER = st.secrets["EMAIL_USER"]
+        EMAIL_APP_PASSWORD = st.secrets["EMAIL_APP_PASSWORD"]
+        EMAIL_FROM_NAME = st.secrets.get("EMAIL_FROM_NAME", "MSSP")
+        
+        msg = MIMEMultipart()
+        msg["From"] = f"{EMAIL_FROM_NAME} <{EMAIL_USER}>"
+        msg["To"] = email_destino
+        msg["Subject"] = "Acesso à MSSP – Colaborador"
+        
+        corpo = f"""Olá {nome_colab},
+
+Você foi adicionado à MSSP como colaborador por Rafael Peixoto Pires.  
+Seu login é: {email_destino}  
+Sua senha é: {senha_gerada}  
+Validade do acesso: 15 dias.  
+
+IMPORTANTE:  
+- Seus dados e histórico serão privados.  
+- Você não terá acesso aos dados ou históricos de outros colaboradores.  
+- Para continuar, confirme que leu e aceita as regras de segurança no app.
+
+Atenciosamente,  
+MSSP"""
+        
+        msg.attach(MIMEText(corpo, "plain", "utf-8"))
+        
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(EMAIL_USER, EMAIL_APP_PASSWORD)
+            server.sendmail(EMAIL_USER, email_destino, msg.as_string())
+        
+        return True
+    except Exception as e:
+        st.error(f"❌ Falha ao enviar e-mail: {str(e)}")
+        return False
+
+def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=None):
+    link_lower = link.lower() if link else ""
+    if "clickbank" in link_lower:
+        plataforma = "ClickBank"
+    elif "hotmart" in link_lower or "pay.hotmart" in link_lower:
+        plataforma = "Hotmart"
+    elif "amazon" in link_lower:
+        plataforma = "Amazon"
+    elif "awin" in link_lower:
+        plataforma = "Awin"
+    elif "cj.com" in link_lower or "commissionjunction" in link_lower:
+        plataforma = "CJ Affiliate"
+    else:
+        plataforma = "Outra / Não identificada"
+    
+    criterios_aprovados = 0
+    cvr_aprovado = cvr is not None and cvr >= 3
+    epc_aprovado = epc is not None and epc >= 3
+    comissao_aprovado = comissao is not None and comissao >= 50
+    gravidade_aprovado = gravidade is not None and gravidade >= 30
+    
+    if cvr_aprovado: criterios_aprovados += 1
+    if epc_aprovado: criterios_aprovados += 1
+    if comissao_aprovado: criterios_aprovados += 1
+    if gravidade_aprovado: criterios_aprovados += 1
+    
+    if criterios_aprovados >= 3:
+        classificacao = "🟢 APROVAR"
+    elif criterios_aprovados == 2:
+        classificacao = "🟡 TESTAR"
+    else:
+        classificacao = "🔴 DESCARTAR"
+    
+    pontos_fortes = []
+    pontos_fracos = []
+    
+    if cvr_aprovado:
+        pontos_fortes.append("Alta taxa de conversão (≥3%)")
+    else:
+        pontos_fracos.append("Baixa taxa de conversão (<3%)")
+    
+    if epc_aprovado:
+        pontos_fortes.append("Bom ganho por clique (≥$3)")
+    else:
+        pontos_fracos.append("Ganho por clique baixo (<$3)")
+    
+    if comissao_aprovado:
+        pontos_fortes.append("Comissão alta (≥$50)")
+    else:
+        pontos_fracos.append("Comissão baixa (<$50)")
+    
+    if gravidade_aprovado:
+        pontos_fortes.append("Alta demanda (gravidade ≥30)")
+    else:
+        pontos_fracos.append("Baixa demanda ou difícil de vender (gravidade <30)")
+    
+    if epc_aprovado and comissao_aprovado:
+        trafego_indicado = "Pago (Meta Ads, Google)"
+    else:
+        trafego_indicado = "Orgânico (YouTube, blogs, grupos)"
+    
+    if plataforma in ["Hotmart", "ClickBank"]:
+        redes_adequadas = ["Instagram", "TikTok", "Facebook"]
+        restricoes = [
+            "Meta Ads: bloqueia promessas financeiras e saúde não comprovada",
+            "TikTok: restringe suplementos e relacionamentos 'milagrosos'"
+        ]
+    elif plataforma == "Amazon":
+        redes_adequadas = ["Pinterest", "YouTube", "Facebook"]
+        restricoes = [
+            "Não pode usar marca 'Amazon' sem autorização",
+            "Evitar falsa escassez ('Última unidade!')"
+        ]
+    else:
+        redes_adequadas = ["Instagram", "Facebook", "YouTube"]
+        restricoes = ["Ver políticas da plataforma antes de anunciar"]
+    
+    if classificacao == "🟢 APROVAR":
+        conclusao = "Vale a pena seguir com este produto. Alto potencial de lucro com risco controlado."
+    elif classificacao == "🟡 TESTAR":
+        conclusao = "Teste com orçamento limitado. O produto tem potencial, mas exige validação real."
+    else:
+        conclusao = "Não recomendo neste momento. Risco alto e retorno incerto."
+    
+    return {
+        "plataforma": plataforma,
+        "classificacao": classificacao,
+        "criterios_aprovados": criterios_aprovados,
+        "pontos_fortes": pontos_fortes,
+        "pontos_fracos": pontos_fracos,
+        "trafego_indicado": trafego_indicado,
+        "redes_adequadas": redes_adequadas,
+        "restricoes": restricoes,
+        "conclusao": conclusao,
+        "cvr": cvr,
+        "epc": epc,
+        "comissao": comissao,
+        "gravidade": gravidade
+    }
+
+# ==============================
+# Inicializar estado da sessão
+# ==============================
+if "historico" not in st.session_state:
+    st.session_state.historico = carregar_historico()
+
+if "dados_postar" not in st.session_state:
+    st.session_state.dados_postar = carregar_dados_postar()
+
+if "colaboradores" not in st.session_state:
+    st.session_state.colaboradores = carregar_colaboradores()
+
+if "etapa_pesquisa" not in st.session_state:
+    st.session_state.etapa_pesquisa = 1
+
+if "dados_temporarios" not in st.session_state:
+    st.session_state.dados_temporarios = {}
+
+if "estado_mssp" not in st.session_state:
+    st.session_state.estado_mssp = carregar_estado()
+
+if "rafael_historico" not in st.session_state:
+    st.session_state.rafael_historico = carregar_rafael_historico()
+
+# ==============================
+# Menu lateral
+# ==============================
+st.sidebar.title("MSSP Afiliado")
+pagina = st.sidebar.radio(
+    "Navegue pelas seções:",
+    ("Início", "Pesquisa de Produtos", "Ideias de Anúncio", "Postar", "Histórico", "Colaboradores", "Rafinha", "Configurações"),
+    index=0
+)
+
+# ==============================
+# Página: Início
+# ==============================
+if pagina == "Início":
+    st.title("🎯 MSSP Afiliado")
+    st.subheader("Fase 2A — Análise Avançada de Produtos para Afiliados")
+    st.write("""
+    Este app ajuda afiliados a:
+    - Analisar produtos com base em critérios-chave
+    - Receber um score de viabilidade (0–100)
+    - Gerar ideias de anúncios em português europeu
+    - Manter histórico organizado
+    
+    Tudo é feito localmente, sem internet.
+    """)
+    st.info("💡 Dica: Comece pela página **'Pesquisa de Produtos'** para analisar sua primeira oferta.")
+
+# ==============================
+# Página: Pesquisa de Produtos
+# ==============================
+elif pagina == "Pesquisa de Produtos":
+    st.title("🔍 Pesquisa de Produtos")
+    
+    if st.session_state.etapa_pesquisa == 1:
+        st.subheader("Etapa 1/3: Link do Produto")
+        link_produto = st.text_input(
+            "Cole o link do produto:",
+            value=st.session_state.dados_temporarios.get("link_produto", ""),
+            placeholder="https://exemplo.com/produto"
+        )
+        
+        st.markdown("### (Opcional) Métricas avançadas:")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            cvr_input = st.number_input("CVR (%)", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
+        with col2:
+            epc_input = st.number_input("EPC ($)", min_value=0.0, value=0.0, step=0.1)
+        with col3:
+            comissao_input = st.number_input("Comissão ($)", min_value=0.0, value=0.0, step=1.0)
+        with col4:
+            gravidade_input = st.number_input("Gravidade", min_value=0, value=0, step=1)
+        
+        if link_produto.strip() or any([cvr_input > 0, epc_input > 0, comissao_input > 0, gravidade_input > 0]):
+            cvr_val = cvr_input if cvr_input > 0 else None
+            epc_val = epc_input if epc_input > 0 else None
+            comissao_val = comissao_input if comissao_input > 0 else None
+            gravidade_val = gravidade_input if gravidade_input > 0 else None
+            
+            with st.spinner("🧠 Analisando com o Motor Lógico da MSSP..."):
+                resultado = analisar_produto_mssp(
+                    link=link_produto.strip(),
+                    cvr=cvr_val,
+                    epc=epc_val,
+                    comissao=comissao_val,
+                    gravidade=gravidade_val
+                )
+            
+            st.markdown("---")
+            st.subheader("📊 Relatório Inteligente da MSSP")
+            
+            st.markdown("🔹 **Plataforma identificada:**")
+            st.write(resultado["plataforma"])
+            
+            st.markdown("🔹 **Classificação automática:**")
+            st.subheader(resultado["classificacao"])
+            
+            st.markdown("🔹 **Critérios analisados:**")
+            st.write(f"- CVR: {resultado['cvr']}% {'✅' if resultado['cvr'] and resultado['cvr'] >= 3 else '❌'}")
+            st.write(f"- EPC: ${resultado['epc']} {'✅' if resultado['epc'] and resultado['epc'] >= 3 else '❌'}")
+            st.write(f"- Comissão: ${resultado['comissao']} {'✅' if resultado['comissao'] and resultado['comissao'] >= 50 else '❌'}")
+            st.write(f"- Gravidade: {resultado['gravidade']} {'✅' if resultado['gravidade'] and resultado['gravidade'] >= 30 else '❌'}")
+            
+            if resultado["pontos_fortes"]:
+                st.markdown("🔹 **Pontos fortes:**")
+                for p in resultado["pontos_fortes"]:
+                    st.write(f"- {p}")
+            
+            if resultado["pontos_fracos"]:
+                st.markdown("🔹 **Pontos fracos:**")
+                for p in resultado["pontos_fracos"]:
+                    st.write(f"- {p}")
+            
+            st.markdown("🔹 **Tipo de tráfego mais indicado:**")
+            st.write(resultado["trafego_indicado"])
+            
+            st.markdown("🔹 **Redes sociais mais adequadas:**")
+            st.write(", ".join(resultado["redes_adequadas"]))
+            
+            st.markdown("🔹 **Possíveis restrições de anúncios:**")
+            for r in resultado["restricoes"]:
+                st.write(f"- {r}")
+            
+            st.markdown("🔹 **Conclusão final da MSSP (sua parceira de negócios):**")
+            st.write(f"**{resultado['conclusao']}**")
+            
+            st.markdown("---")
+        
+        col1, col2 = st.columns([1, 5])
+        with col1:
+            if st.button("➡️ Avançar"):
+                if link_produto.strip():
+                    st.session_state.dados_temporarios["link_produto"] = link_produto.strip()
+                    st.session_state.dados_temporarios.update({
+                        "cvr": cvr_input if cvr_input > 0 else None,
+                        "epc": epc_input if epc_input > 0 else None,
+                        "comissao": comissao_input if comissao_input > 0 else None,
+                        "gravidade": gravidade_input if gravidade_input > 0 else None
+                    })
+                    st.session_state.etapa_pesquisa = 2
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Por favor, insira o link do produto.")
+        with col2:
+            st.empty()
+
+    elif st.session_state.etapa_pesquisa == 2:
+        st.subheader("Etapa 2/3: Detalhes do Produto")
+        
+        palavras_chave_input = st.text_input(
+            "Palavras-chave (separadas por vírgula, máximo 7):",
+            value=st.session_state.dados_temporarios.get("palavras_chave_input", ""),
+            placeholder="Ex: fone, bluetooth, sem fios"
+        )
+        
+        plataformas_predefinidas = ["Amazon", "ClickBank", "Awin", "CJ Affiliate", "Hotmart", "Outra"]
+        plataforma = st.selectbox(
+            "Plataforma:",
+            options=plataformas_predefinidas,
+            index=plataformas_predefinidas.index(st.session_state.dados_temporarios.get("plataforma", "Amazon")) if st.session_state.dados_temporarios.get("plataforma") in plataformas_predefinidas else 0
+        )
+        if plataforma == "Outra":
+            plataforma_manual = st.text_input("Digite a plataforma:", key="plataforma_manual")
+            if plataforma_manual.strip():
+                plataforma = plataforma_manual.strip()
+        
+        tipo_produto = st.selectbox(
+            "Tipo de produto:",
+            ["Digital", "Físico"],
+            index=["Digital", "Físico"].index(st.session_state.dados_temporarios.get("tipo_produto", "Digital"))
+        )
+        
+        comissao_input = st.number_input(
+            "Comissão (%):",
+            min_value=0.0,
+            value=float(st.session_state.dados_temporarios.get("comissao_percentual", 1.0)),
+            step=0.5,
+            help="Valor mínimo automático: 1%"
+        )
+        
+        pais = st.text_input(
+            "País alvo:",
+            value=st.session_state.dados_temporarios.get("pais", ""),
+            placeholder="Ex: Portugal, Alemanha ou Europa"
+        )
+        
+        tipo_pagamento = st.selectbox(
+            "Tipo de pagamento:",
+            ["Normal", "Pagamento na entrega"],
+            index=["Normal", "Pagamento na entrega"].index(st.session_state.dados_temporarios.get("tipo_pagamento", "Normal"))
+        )
+        
+        col1, col2, col3 = st.columns([1, 1, 4])
+        with col1:
+            if st.button("⬅️ Voltar"):
+                st.session_state.etapa_pesquisa = 1
+                st.rerun()
+        with col2:
+            if st.button("➡️ Avançar"):
+                if not palavras_chave_input.strip() or not pais.strip():
+                    st.warning("⚠️ Preencha palavras-chave e país.")
+                else:
+                    palavras_lista = [p.strip() for p in palavras_chave_input.split(",") if p.strip()]
+                    if len(palavras_lista) > 7:
+                        st.warning("⚠️ Limite máximo: 7 palavras-chave.")
+                    else:
+                        st.session_state.dados_temporarios.update({
+                            "palavras_chave_input": palavras_chave_input,
+                            "plataforma": plataforma,
+                            "tipo_produto": tipo_produto,
+                            "comissao_percentual": comissao_input,
+                            "pais": pais,
+                            "tipo_pagamento": tipo_pagamento
+                        })
+                        st.session_state.etapa_pesquisa = 3
+                        st.rerun()
+        with col3:
+            st.empty()
+
+    elif st.session_state.etapa_pesquisa == 3:
+        st.subheader("Etapa 3/3: Confirmar e Analisar")
+        
+        st.markdown("**Link do produto:**")
+        st.code(st.session_state.dados_temporarios["link_produto"])
+        
+        st.markdown("**Detalhes:**")
+        st.write(f"- Palavras-chave: {st.session_state.dados_temporarios['palavras_chave_input']}")
+        st.write(f"- Plataforma: {st.session_state.dados_temporarios['plataforma']}")
+        st.write(f"- Tipo: {st.session_state.dados_temporarios['tipo_produto']}")
+        st.write(f"- Comissão: {st.session_state.dados_temporarios['comissao_percentual']}%")
+        st.write(f"- País: {st.session_state.dados_temporarios['pais']}")
+        st.write(f"- Pagamento: {st.session_state.dados_temporarios['tipo_pagamento']}")
+        
+        col1, col2, col3 = st.columns([1, 1, 4])
+        with col1:
+            if st.button("⬅️ Voltar"):
+                st.session_state.etapa_pesquisa = 2
+                st.rerun()
+        with col2:
+            if st.button("✅ Analisar Produto"):
+                palavras_lista = [p.strip() for p in st.session_state.dados_temporarios["palavras_chave_input"].split(",") if p.strip()]
+                pais_salvar = "Europa (todos os países)" if st.session_state.dados_temporarios["pais"].strip().lower() == "europa" else st.session_state.dados_temporarios["pais"].strip()
+                comissao = st.session_state.dados_temporarios["comissao_percentual"] if st.session_state.dados_temporarios["comissao_percentual"] > 0 else 1.0
+                
+                novo_registro = {
+                    "tipo": "pesquisa_v2",
+                    "link_produto": st.session_state.dados_temporarios["link_produto"],
+                    "palavras_chave": palavras_lista,
+                    "plataforma": st.session_state.dados_temporarios["plataforma"],
+                    "tipo_produto": st.session_state.dados_temporarios["tipo_produto"],
+                    "comissao": comissao,
+                    "pais": pais_salvar,
+                    "tipo_pagamento": st.session_state.dados_temporarios["tipo_pagamento"],
+                    "cvr": st.session_state.dados_temporarios.get("cvr"),
+                    "epc": st.session_state.dados_temporarios.get("epc"),
+                    "comissao_valor": st.session_state.dados_temporarios.get("comissao"),
+                    "gravidade": st.session_state.dados_temporarios.get("gravidade"),
+                    "data_hora": datetime.now().isoformat()
+                }
+                
+                st.session_state.historico.append(novo_registro)
+                salvar_historico(st.session_state.historico)
+                
+                st.session_state.dados_temporarios = {}
+                st.session_state.etapa_pesquisa = 1
+                
+                st.success("✅ Análise concluída!")
+        with col3:
+            st.empty()
+
+# ==============================
+# Página: Ideias de Anúncio
+# ==============================
+elif pagina == "Ideias de Anúncio":
+    st.title("✍️ Ideias de Anúncio")
+    
+    nome_produto = st.text_input(
+        "Nome do produto:",
+        placeholder="Ex: Curso de Dropshipping"
+    )
+    
+    grau_anuncio = st.selectbox(
+        "Grau do anúncio:",
+        ["Conservador", "Equilibrado", "Agressivo", "Curto", "Longo"]
+    )
+    
+    plataformas_anuncio = [
+        "Instagram Post",
+        "Instagram Reels",
+        "TikTok",
+        "Facebook",
+        "Pinterest",
+        "Descrição de página de vendas",
+        "Outra"
+    ]
+    plataforma_anuncio = st.selectbox(
+        "Tipo de plataforma:",
+        options=plataformas_anuncio
+    )
+    if plataforma_anuncio == "Outra":
+        plataforma_anuncio_manual = st.text_input("Digite a plataforma:", key="plataforma_anuncio_manual")
+        if plataforma_anuncio_manual.strip():
+            plataforma_anuncio = plataforma_anuncio_manual.strip()
+    
+    st.markdown("**Chamada para ação (CTA):**")
+    cta_sugestoes = [
+        "Comprar agora",
+        "Ver oferta",
+        "Frete grátis na Europa",
+        "Pagamento na entrega",
+        "Últimas unidades"
+    ]
+    cta_sugestao_selecionada = st.selectbox(
+        "Sugestões (opcional):",
+        [""] + cta_sugestoes,
+        label_visibility="collapsed"
+    )
+    
+    cta_personalizado = st.text_input(
+        "Digite seu CTA personalizado:",
+        value=cta_sugestao_selecionada if cta_sugestao_selecionada else "",
+        key="cta_input"
+    )
+    
+    if st.button("✨ Gerar anúncio"):
+        if not nome_produto.strip():
+            st.warning("⚠️ Por favor, digite o nome do produto.")
+        else:
+            cta_final = cta_personalizado.strip() if cta_personalizado.strip() else "Comprar agora"
+            
+            if grau_anuncio == "Conservador":
+                anuncio_pt = (
+                    f"Conheça o {nome_produto}.\n\n"
+                    f"Uma solução confiável para as suas necessidades.\n"
+                    f"Qualidade garantida e suporte dedicado.\n\n"
+                    f"👉 {cta_final}\n"
+                    f"[LINK DE AFILIADO AQUI]"
+                )
+                anuncio_en = (
+                    f"Discover the {nome_produto}.\n\n"
+                    f"A reliable solution for your needs.\n"
+                    f"Guaranteed quality and dedicated support.\n\n"
+                    f"👉 {cta_final}\n"
+                    f"[AFFILIATE LINK HERE]"
+                )
+            elif grau_anuncio == "Equilibrado":
+                anuncio_pt = (
+                    f"Não perca o {nome_produto}!\n\n"
+                    f"✅ Qualidade premium\n"
+                    f"✅ Entrega rápida\n"
+                    f"✅ Preço especial por tempo limitado\n\n"
+                    f"👉 {cta_final}\n"
+                    f"[LINK DE AFILIADO AQUI]\n\n"
+                    f"#afiliado"
+                )
+                anuncio_en = (
+                    f"Don't miss the {nome_produto}!\n\n"
+                    f"✅ Premium quality\n"
+                    f"✅ Fast delivery\n"
+                    f"✅ Special price for a limited time\n\n"
+                    f"👉 {cta_final}\n"
+                    f"[AFFILIATE LINK HERE]\n\n"
+                    f"# affiliate"
+                )
+            elif grau_anuncio == "Agressivo":
+                anuncio_pt = (
+                    f"🔥 CORRA! O {nome_produto} está com preço promocional!\n\n"
+                    f"⚠️ ÚLTIMAS UNIDADES DISPONÍVEIS!\n"
+                    f"✅ Garantia de satisfação\n"
+                    f"✅ Frete rápido para toda a Europa\n\n"
+                    f"💥 {cta_final} ANTES QUE ACABE!\n"
+                    f"[LINK DE AFILIADO AQUI]\n\n"
+                    f"#oferta #promoção"
+                )
+                anuncio_en = (
+                    f"🔥 HURRY! The {nome_produto} is on sale!\n\n"
+                    f"⚠️ LAST UNITS AVAILABLE!\n"
+                    f"✅ Satisfaction guaranteed\n"
+                    f"✅ Fast shipping across Europe\n\n"
+                    f"💥 {cta_final} BEFORE IT'S GONE!\n"
+                    f"[AFFILIATE LINK HERE]\n\n"
+                    f"#deal #promotion"
+                )
+            elif grau_anuncio == "Curto":
+                anuncio_pt = (
+                    f"{nome_produto}\n"
+                    f"👉 {cta_final}\n"
+                    f"[LINK DE AFILIADO AQUI]"
+                )
+                anuncio_en = (
+                    f"{nome_produto}\n"
+                    f"👉 {cta_final}\n"
+                    f"[AFFILIATE LINK HERE]"
+                )
+            else:
+                anuncio_pt = (
+                    f"Apresentamos com orgulho o incrível {nome_produto}!\n\n"
+                    f"Depois de meses de testes e desenvolvimento, criamos uma solução que realmente resolve o seu problema.\n\n"
+                    f"🌟 Benefícios:\n"
+                    f"- Resultados comprovados\n"
+                    f"- Suporte 24/7\n"
+                    f"- Garantia de 30 dias\n"
+                    f"- Entrega imediata\n\n"
+                    f"👉 {cta_final} e transforme sua vida hoje mesmo!\n"
                     f"[LINK DE AFILIADO AQUI]\n\n"
                     f"#transformação #resultados"
                 )
@@ -952,197 +1661,10 @@ elif pagina == "Rafinha":
     st.markdown(
         """
         <style>
-        .fixed-chat-box {
+        .fixed-chat-container {
             position: relative;
             background-color: #ffffff;
             border: 1px solid #e0e0e0;
             border-radius: 12px;
             padding: 20px;
-            margin: 20px auto;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            overflow: hidden;
-            max-width: 800px;
-            width: 95%;
-        }
-        .chat-content {
-            max-height: 400px;
-            overflow-y: auto;
-            padding-right: 8px;
-        }
-        .user-msg {
-            background-color: #e3f2fd;
-            color: #0d47a1;
-            padding: 12px;
-            border-radius: 10px;
-            margin: 10px 0;
-            font-weight: 500;
-            border-left: 4px solid #1976d2;
-        }
-        .rafinha-msg {
-            background-color: #f1f8e9;
-            color: #1b5e20;
-            padding: 12px;
-            border-radius: 10px;
-            margin: 10px 0;
-            font-weight: 500;
-            border-left: 4px solid #388e3c;
-        }
-        .alert-error {
-            color: #d32f2f !important;
-            font-weight: bold;
-        }
-        .alert-warning {
-            color: #ed6c02 !important;
-            font-weight: bold;
-        }
-        .alert-success {
-            color: #2e7d32 !important;
-            font-weight: bold;
-        }
-        @media (max-width: 768px) {
-            .fixed-chat-box {
-                margin: 15px auto;
-                padding: 15px;
-                width: 95%;
-            }
-            .chat-content {
-                max-height: 300px;
-            }
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # === CAIXA FIXA NO TOPO CENTRAL ===
-    chat_container = st.container()
-    with chat_container:
-        st.markdown('<div class="fixed-chat-box">', unsafe_allow_html=True)
-        st.markdown('<div class="chat-content">', unsafe_allow_html=True)
-        
-        historico = st.session_state.rafael_historico
-        
-        if historico:
-            for msg in historico[-20:]:  # Mostrar últimas 20 mensagens
-                # Mensagem do usuário
-                st.markdown(
-                    f'<div class="user-msg">Você: {msg["usuario"]}</div>',
-                    unsafe_allow_html=True
-                )
-                # Resposta do Rafinha
-                resposta = msg["resposta"]
-                if "❌" in resposta:
-                    resposta = f'<span class="alert-error">{resposta}</span>'
-                elif "⚠️" in resposta:
-                    resposta = f'<span class="alert-warning">{resposta}</span>'
-                elif "✅" in resposta:
-                    resposta = f'<span class="alert-success">{resposta}</span>'
-                st.markdown(
-                    f'<div class="rafinha-msg">Rafinha: {resposta}</div>',
-                    unsafe_allow_html=True
-                )
-        else:
-            st.markdown(
-                '<div class="rafinha-msg">Rafinha: 💬 Me fala o que tá rolando, parceiro!</div>',
-                unsafe_allow_html=True
-            )
-        
-        st.markdown('</div>', unsafe_allow_html=True)  # Fecha .chat-content
-        st.markdown('</div>', unsafe_allow_html=True)  # Fecha .fixed-chat-box
-
-    # === CAMPO DE ENTRADA FIXO ABAIXO DA CAIXA ===
-    st.markdown("<br>", unsafe_allow_html=True)
-    entrada_usuario = st.text_input(
-        "Sua mensagem para o Rafinha:",
-        placeholder="Ex: Tem erro? O que falta? Tá lindo?",
-        key="input_rafinha"
-    )
-    
-    col1, col2 = st.columns([1, 5])
-    with col1:
-        if st.button("Enviar", key="btn_enviar_rafinha"):
-            if entrada_usuario.strip():
-                # Gerar resposta do Rafinha
-                modulos = st.session_state.estado_mssp.get("modulos", {})
-                automacao = st.session_state.estado_mssp.get("status_automacao", "desativada")
-                
-                if "erro" in entrada_usuario.lower() or "falhou" in entrada_usuario.lower():
-                    resposta = "❌ Caralho, deu ruim? Me mostra o erro que eu resolvo na hora."
-                elif "tá lindo" in entrada_usuario.lower() or "bom" in entrada_usuario.lower():
-                    resposta = "✅ Tá lindo, parceiro! Bora resolver o próximo desafio?"
-                else:
-                    progresso = []
-                    pendencias = []
-                    
-                    if modulos.get("colaboradores"):
-                        progresso.append("Módulo de Colaboradores: ativo com envio real de e-mail")
-                    else:
-                        pendencias.append("Módulo de Colaboradores desativado")
-                    
-                    if automacao == "desativada":
-                        pendencias.append("Automação externa ainda não iniciada")
-                    
-                    if os.path.exists("state.json"):
-                        progresso.append("state.json configurado")
-                    else:
-                        pendencias.append("state.json ausente — mas já recriei automaticamente")
-                    
-                    resposta = "**Minha análise atual:**\n\n"
-                    if progresso:
-                        resposta += "✅ **Feito:**\n" + "\n".join(f"- {p}" for p in progresso) + "\n\n"
-                    if pendencias:
-                        resposta += "⚠️ **Falta fazer:**\n" + "\n".join(f"- {p}" for p in pendencias) + "\n\n"
-                    resposta += "Quer que eu resolva agora ou só registre por enquanto?"
-
-                # Salvar no histórico
-                nova_msg = {
-                    "usuario": entrada_usuario.strip(),
-                    "resposta": resposta,
-                    "data_hora": datetime.now().isoformat()
-                }
-                historico.append(nova_msg)
-                st.session_state.rafael_historico = historico
-                salvar_rafael_historico(historico)
-                st.rerun()
-    with col2:
-        st.empty()
-
-    # Status na sidebar
-    st.sidebar.markdown("### 📊 Status da MSSP")
-    estado = st.session_state.estado_mssp
-    st.sidebar.write(f"**Versão:** {estado.get('versao', 'Desconhecida')}")
-    st.sidebar.write(f"**Automação:** {estado.get('status_automacao', 'Desconhecido')}")
-    st.sidebar.write(f"**Módulos ativos:** {sum(1 for v in estado.get('modulos', {}).values() if v)}")
-
-# ==============================
-# Página: Configurações
-# ==============================
-elif pagina == "Configurações":
-    st.title("⚙️ Configurações")
-    st.write("""
-    **Informações importantes:**
-    
-    - Todos os dados são salvos localmente no arquivo `historico_afiliacao.json`
-    - O app não usa APIs externas, internet ou serviços pagos
-    - Nenhuma informação sensível é armazenada
-    - Você pode editar o código diretamente no GitHub a qualquer momento
-    
-    Este é um app estável, simples e 100% editável.
-    """)
-    
-    st.markdown("---")
-    st.subheader("📌 Passo a passo para atualizar este app:")
-    st.write("""
-    1. No GitHub, abra o repositório `MSSP-AFILIAÇÃO-O-EU`
-    2. Clique em `app.py`
-    3. Clique no ícone de lápis (✏️) para editar
-    4. Cole o novo código completo (substitua tudo)
-    5. Clique em “Commit changes”
-    6. Atualize o app no Streamlit Cloud (F5)
-    
-    Após analisar um produto:
-    - Revise o score e a explicação
-    - Decida manualmente se quer promover
-    - Use a página “Ideias de Anúncio” para criar conteúdo
-    - Nunca confie cegamente na análise automática
-    """)
+           
