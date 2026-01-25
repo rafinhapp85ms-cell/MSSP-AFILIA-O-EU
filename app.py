@@ -455,7 +455,7 @@ elif pagina == "Pesquisa de Produtos":
         plataforma = st.selectbox(
             "Plataforma:",
             options=plataformas_predefinidas,
-            index=plataformas_predefinidas.index(st.session_state.dados_temporarios.get("plataforma", "Amazon")) if st.session_state.dados_temporarios.get("plataforma") in plataformas_predefinidas else 0
+            index=plataformas_predefinidas.index(st.session_state.dados_temporios.get("plataforma", "Amazon")) if st.session_state.dados_temporios.get("plataforma") in plataformas_predefinidas else 0
         )
         if plataforma == "Outra":
             plataforma_manual = st.text_input("Digite a plataforma:", key="plataforma_manual")
@@ -465,27 +465,27 @@ elif pagina == "Pesquisa de Produtos":
         tipo_produto = st.selectbox(
             "Tipo de produto:",
             ["Digital", "Físico"],
-            index=["Digital", "Físico"].index(st.session_state.dados_temporarios.get("tipo_produto", "Digital"))
+            index=["Digital", "Físico"].index(st.session_state.dados_temporios.get("tipo_produto", "Digital"))
         )
         
         comissao_input = st.number_input(
             "Comissão (%):",
             min_value=0.0,
-            value=float(st.session_state.dados_temporarios.get("comissao_percentual", 1.0)),
+            value=float(st.session_state.dados_temporios.get("comissao_percentual", 1.0)),
             step=0.5,
             help="Valor mínimo automático: 1%"
         )
         
         pais = st.text_input(
             "País alvo:",
-            value=st.session_state.dados_temporarios.get("pais", ""),
+            value=st.session_state.dados_temporios.get("pais", ""),
             placeholder="Ex: Portugal, Alemanha ou Europa"
         )
         
         tipo_pagamento = st.selectbox(
             "Tipo de pagamento:",
             ["Normal", "Pagamento na entrega"],
-            index=["Normal", "Pagamento na entrega"].index(st.session_state.dados_temporarios.get("tipo_pagamento", "Normal"))
+            index=["Normal", "Pagamento na entrega"].index(st.session_state.dados_temporios.get("tipo_pagamento", "Normal"))
         )
         
         col1, col2, col3 = st.columns([1, 1, 4])
@@ -502,7 +502,7 @@ elif pagina == "Pesquisa de Produtos":
                     if len(palavras_lista) > 7:
                         st.warning("⚠️ Limite máximo: 7 palavras-chave.")
                     else:
-                        st.session_state.dados_temporarios.update({
+                        st.session_state.dados_temporios.update({
                             "palavras_chave_input": palavras_chave_input,
                             "plataforma": plataforma,
                             "tipo_produto": tipo_produto,
@@ -519,15 +519,15 @@ elif pagina == "Pesquisa de Produtos":
         st.subheader("Etapa 3/3: Confirmar e Analisar")
         
         st.markdown("**Link do produto:**")
-        st.code(st.session_state.dados_temporarios["link_produto"])
+        st.code(st.session_state.dados_temporios["link_produto"])
         
         st.markdown("**Detalhes:**")
-        st.write(f"- Palavras-chave: {st.session_state.dados_temporarios['palavras_chave_input']}")
-        st.write(f"- Plataforma: {st.session_state.dados_temporarios['plataforma']}")
-        st.write(f"- Tipo: {st.session_state.dados_temporarios['tipo_produto']}")
-        st.write(f"- Comissão: {st.session_state.dados_temporarios['comissao_percentual']}%")
-        st.write(f"- País: {st.session_state.dados_temporarios['pais']}")
-        st.write(f"- Pagamento: {st.session_state.dados_temporarios['tipo_pagamento']}")
+        st.write(f"- Palavras-chave: {st.session_state.dados_temporios['palavras_chave_input']}")
+        st.write(f"- Plataforma: {st.session_state.dados_temporios['plataforma']}")
+        st.write(f"- Tipo: {st.session_state.dados_temporios['tipo_produto']}")
+        st.write(f"- Comissão: {st.session_state.dados_temporios['comissao_percentual']}%")
+        st.write(f"- País: {st.session_state.dados_temporios['pais']}")
+        st.write(f"- Pagamento: {st.session_state.dados_temporios['tipo_pagamento']}")
         
         col1, col2, col3 = st.columns([1, 1, 4])
         with col1:
@@ -536,30 +536,30 @@ elif pagina == "Pesquisa de Produtos":
                 st.rerun()
         with col2:
             if st.button("✅ Analisar Produto"):
-                palavras_lista = [p.strip() for p in st.session_state.dados_temporarios["palavras_chave_input"].split(",") if p.strip()]
-                pais_salvar = "Europa (todos os países)" if st.session_state.dados_temporarios["pais"].strip().lower() == "europa" else st.session_state.dados_temporarios["pais"].strip()
-                comissao = st.session_state.dados_temporarios["comissao_percentual"] if st.session_state.dados_temporarios["comissao_percentual"] > 0 else 1.0
+                palavras_lista = [p.strip() for p in st.session_state.dados_temporios["palavras_chave_input"].split(",") if p.strip()]
+                pais_salvar = "Europa (todos os países)" if st.session_state.dados_temporios["pais"].strip().lower() == "europa" else st.session_state.dados_temporios["pais"].strip()
+                comissao = st.session_state.dados_temporios["comissao_percentual"] if st.session_state.dados_temporios["comissao_percentual"] > 0 else 1.0
                 
                 novo_registro = {
                     "tipo": "pesquisa_v2",
-                    "link_produto": st.session_state.dados_temporarios["link_produto"],
+                    "link_produto": st.session_state.dados_temporios["link_produto"],
                     "palavras_chave": palavras_lista,
-                    "plataforma": st.session_state.dados_temporarios["plataforma"],
-                    "tipo_produto": st.session_state.dados_temporarios["tipo_produto"],
+                    "plataforma": st.session_state.dados_temporios["plataforma"],
+                    "tipo_produto": st.session_state.dados_temporios["tipo_produto"],
                     "comissao": comissao,
                     "pais": pais_salvar,
-                    "tipo_pagamento": st.session_state.dados_temporarios["tipo_pagamento"],
-                    "cvr": st.session_state.dados_temporarios.get("cvr"),
-                    "epc": st.session_state.dados_temporarios.get("epc"),
-                    "comissao_valor": st.session_state.dados_temporarios.get("comissao"),
-                    "gravidade": st.session_state.dados_temporarios.get("gravidade"),
+                    "tipo_pagamento": st.session_state.dados_temporios["tipo_pagamento"],
+                    "cvr": st.session_state.dados_temporios.get("cvr"),
+                    "epc": st.session_state.dados_temporios.get("epc"),
+                    "comissao_valor": st.session_state.dados_temporios.get("comissao"),
+                    "gravidade": st.session_state.dados_temporios.get("gravidade"),
                     "data_hora": datetime.now().isoformat()
                 }
                 
                 st.session_state.historico.append(novo_registro)
                 salvar_historico(st.session_state.historico)
                 
-                st.session_state.dados_temporarios = {}
+                st.session_state.dados_temporios = {}
                 st.session_state.etapa_pesquisa = 1
                 
                 st.success("✅ Análise concluída!")
@@ -942,25 +942,26 @@ elif pagina == "Colaboradores":
         st.info("Nenhum colaborador cadastrado ainda.")
 
 # ==============================
-# Página: Rafinha (CAIXA FIXA NO TOPO)
+# Página: Rafinha (CAIXA FIXA NO TOPO CENTRAL)
 # ==============================
 elif pagina == "Rafinha":
     st.title("🧠 Rafinha — Cérebro Interno da MSSP")
     st.caption("Sou seu parceiro, guardião e resolvedor. Falo direto, aprendo rápido e protejo a MSSP.")
 
-    # === CAIXA DE CONVERSA FIXA NO TOPO ===
+    # === CAIXA DE CONVERSA FIXA NO TOPO CENTRAL ===
     st.markdown(
         """
         <style>
-        .chat-container {
+        .chat-box {
             background-color: #f9f9f9;
             border: 1px solid #ddd;
             border-radius: 12px;
-            padding: 16px;
+            padding: 20px;
             margin: 20px 0;
             max-height: 400px;
             overflow-y: auto;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: relative;
         }
         .user-msg {
             background-color: #e3f2fd;
@@ -995,10 +996,10 @@ elif pagina == "Rafinha":
         unsafe_allow_html=True
     )
 
-    # Container fixo no topo
+    # Container fixo no topo central
     chat_container = st.container()
     with chat_container:
-        st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+        st.markdown('<div class="chat-box">', unsafe_allow_html=True)
         historico = st.session_state.rafael_historico
         
         if historico:
@@ -1082,7 +1083,7 @@ elif pagina == "Rafinha":
     with col2:
         st.empty()
 
-    # Status na sidebar
+    # Status na sidebar (mantido)
     st.sidebar.markdown("### 📊 Status da MSSP")
     estado = st.session_state.estado_mssp
     st.sidebar.write(f"**Versão:** {estado.get('versao', 'Desconhecida')}")
