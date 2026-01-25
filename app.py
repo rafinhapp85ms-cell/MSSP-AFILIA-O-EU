@@ -3,6 +3,9 @@ import json
 import os
 import secrets
 import hashlib
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 
 # ==============================
@@ -20,6 +23,8 @@ st.set_page_config(
 HISTORICO_ARQUIVO = "historico_afiliacao.json"
 DADOS_POSTAR_ARQUIVO = "dados_postar.json"
 COLABORADORES_ARQUIVO = "colaboradores.json"
+STATE_ARQUIVO = "state.json"
+RAFAEL_HISTORICO_ARQUIVO = "rafael_historico.json"
 
 # ==============================
 # Funções de persistência
@@ -74,6 +79,32 @@ def salvar_colaboradores(colaboradores):
     with open(COLABORADORES_ARQUIVO, "w", encoding="utf-8") as f:
         json.dump(dados_para_salvar, f, ensure_ascii=False, indent=2)
 
+def carregar_estado():
+    if os.path.exists(STATE_ARQUIVO):
+        try:
+            with open(STATE_ARQUIVO, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def salvar_estado(estado):
+    with open(STATE_ARQUIVO, "w", encoding="utf-8") as f:
+        json.dump(estado, f, ensure_ascii=False, indent=2)
+
+def carregar_rafael_historico():
+    if os.path.exists(RAFAEL_HISTORICO_ARQUIVO):
+        try:
+            with open(RAFAEL_HISTORICO_ARQUIVO, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def salvar_rafael_historico(historico):
+    with open(RAFAEL_HISTORICO_ARQUIVO, "w", encoding="utf-8") as f:
+        json.dump(historico, f, ensure_ascii=False, indent=2)
+
 def gerar_senha_segura(tamanho=12):
     letras = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
     numeros = "0123456789"
@@ -93,9 +124,44 @@ def gerar_senha_segura(tamanho=12):
 def hash_senha(senha):
     return hashlib.sha256(senha.encode()).hexdigest()
 
-# ==============================
-# Função do Motor Lógico da MSSP
-# ==============================
+def enviar_email_colaborador(email_destino, nome_colab, senha_gerada):
+    try:
+        EMAIL_USER = st.secrets["EMAIL_USER"]
+        EMAIL_APP_PASSWORD = st.secrets["EMAIL_APP_PASSWORD"]
+        EMAIL_FROM_NAME = st.secrets.get("EMAIL_FROM_NAME", "MSSP")
+        
+        msg = MIMEMultipart()
+        msg["From"] = f"{EMAIL_FROM_NAME} <{EMAIL_USER}>"
+        msg["To"] = email_destino
+        msg["Subject"] = "Acesso à MSSP – Colaborador"
+        
+        corpo = f"""Olá {nome_colab},
+
+Você foi adicionado à MSSP como colaborador por Rafael Peixoto Pires.  
+Seu login é: {email_destino}  
+Sua senha é: {senha_gerada}  
+Validade do acesso: 15 dias.  
+
+IMPORTANTE:  
+- Seus dados e histórico serão privados.  
+- Você não terá acesso aos dados ou históricos de outros colaboradores.  
+- Para continuar, confirme que leu e aceita as regras de segurança no app.
+
+Atenciosamente,  
+MSSP"""
+        
+        msg.attach(MIMEText(corpo, "plain", "utf-8"))
+        
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(EMAIL_USER, EMAIL_APP_PASSWORD)
+            server.sendmail(EMAIL_USER, email_destino, msg.as_string())
+        
+        return True
+    except Exception as e:
+        st.error(f"Erro ao enviar e-mail: {str(e)}")
+        return False
+
 def analisar_produto_mssp(link="", cvr=None, epc=None, comissao=None, gravidade=None):
     link_lower = link.lower() if link else ""
     if "clickbank" in link_lower:
@@ -214,13 +280,19 @@ if "etapa_pesquisa" not in st.session_state:
 if "dados_temporarios" not in st.session_state:
     st.session_state.dados_temporarios = {}
 
+if "estado_mssp" not in st.session_state:
+    st.session_state.estado_mssp = carregar_estado()
+
+if "rafael_historico" not in st.session_state:
+    st.session_state.rafael_historico = carregar_rafael_historico()
+
 # ==============================
 # Menu lateral
 # ==============================
 st.sidebar.title("MSSP Afiliado")
 pagina = st.sidebar.radio(
     "Navegue pelas seções:",
-    ("Início", "Pesquisa de Produtos", "Ideias de Anúncio", "Postar", "Histórico", "Colaboradores", "Configurações"),
+    ("Início", "Pesquisa de Produtos", "Ideias de Anúncio", "Postar", "Histórico", "Colaboradores", "Rafael", "Configurações"),
     index=0
 )
 
@@ -433,30 +505,30 @@ elif pagina == "Pesquisa de Produtos":
                 st.rerun()
         with col2:
             if st.button("✅ Analisar Produto"):
-                palavras_lista = [p.strip() for p in st.session_state.dados_temporios["palavras_chave_input"].split(",") if p.strip()]
-                pais_salvar = "Europa (todos os países)" if st.session_state.dados_temporios["pais"].strip().lower() == "europa" else st.session_state.dados_temporios["pais"].strip()
-                comissao = st.session_state.dados_temporios["comissao_percentual"] if st.session_state.dados_temporios["comissao_percentual"] > 0 else 1.0
+                palavras_lista = [p.strip() for p in st.session_state.dados_temporarios["palavras_chave_input"].split(",") if p.strip()]
+                pais_salvar = "Europa (todos os países)" if st.session_state.dados_temporarios["pais"].strip().lower() == "europa" else st.session_state.dados_temporarios["pais"].strip()
+                comissao = st.session_state.dados_temporarios["comissao_percentual"] if st.session_state.dados_temporarios["comissao_percentual"] > 0 else 1.0
                 
                 novo_registro = {
                     "tipo": "pesquisa_v2",
-                    "link_produto": st.session_state.dados_temporios["link_produto"],
+                    "link_produto": st.session_state.dados_temporarios["link_produto"],
                     "palavras_chave": palavras_lista,
-                    "plataforma": st.session_state.dados_temporios["plataforma"],
-                    "tipo_produto": st.session_state.dados_temporios["tipo_produto"],
+                    "plataforma": st.session_state.dados_temporarios["plataforma"],
+                    "tipo_produto": st.session_state.dados_temporarios["tipo_produto"],
                     "comissao": comissao,
                     "pais": pais_salvar,
-                    "tipo_pagamento": st.session_state.dados_temporios["tipo_pagamento"],
-                    "cvr": st.session_state.dados_temporios.get("cvr"),
-                    "epc": st.session_state.dados_temporios.get("epc"),
-                    "comissao_valor": st.session_state.dados_temporios.get("comissao"),
-                    "gravidade": st.session_state.dados_temporios.get("gravidade"),
+                    "tipo_pagamento": st.session_state.dados_temporarios["tipo_pagamento"],
+                    "cvr": st.session_state.dados_temporarios.get("cvr"),
+                    "epc": st.session_state.dados_temporarios.get("epc"),
+                    "comissao_valor": st.session_state.dados_temporarios.get("comissao"),
+                    "gravidade": st.session_state.dados_temporarios.get("gravidade"),
                     "data_hora": datetime.now().isoformat()
                 }
                 
                 st.session_state.historico.append(novo_registro)
                 salvar_historico(st.session_state.historico)
                 
-                st.session_state.dados_temporios = {}
+                st.session_state.dados_temporarios = {}
                 st.session_state.etapa_pesquisa = 1
                 
                 st.success("✅ Análise concluída!")
@@ -555,7 +627,7 @@ elif pagina == "Ideias de Anúncio":
                     f"✅ Special price for a limited time\n\n"
                     f"👉 {cta_final}\n"
                     f"[AFFILIATE LINK HERE]\n\n"
-                    f"#affiliate"
+                    f"# affiliate"
                 )
             elif grau_anuncio == "Agressivo":
                 anuncio_pt = (
@@ -754,7 +826,7 @@ elif pagina == "Histórico":
         st.info("Nenhum registro ainda. Faça uma análise ou gere um anúncio para começar!")
 
 # ==============================
-# Página: Colaboradores (CORRIGIDA)
+# Página: Colaboradores
 # ==============================
 elif pagina == "Colaboradores":
     st.title("👥 Colaboradores")
@@ -793,31 +865,13 @@ elif pagina == "Colaboradores":
                         "confirmado": False
                     }
 
+                    if enviar_email_colaborador(email, nome_colab, senha_gerada):
+                        st.success("✅ Colaborador adicionado e e-mail enviado com sucesso!")
+                    else:
+                        st.warning("⚠️ Colaborador adicionado, mas falha ao enviar e-mail. Verifique as credenciais no Secrets.")
+                    
                     st.session_state.colaboradores.append(colaborador)
                     salvar_colaboradores(st.session_state.colaboradores)
-
-                    st.success("✅ Colaborador adicionado com sucesso!")
-                    st.info(f"""
-                    **E-mail simulado enviado para: {email}**
-
-                    **Assunto:** Acesso à MSSP – Colaborador
-
-                    **Corpo:**
-                    Olá {nome_colab},
-
-                    Você foi adicionado à MSSP como colaborador por Rafael Peixoto Pires.  
-                    Seu login é: {email}  
-                    Sua senha é: `{senha_gerada}`  
-                    Validade do acesso: 15 dias.  
-
-                    IMPORTANTE:  
-                    - Seus dados e histórico serão privados.  
-                    - Você não terá acesso aos dados ou históricos de outros colaboradores.  
-                    - Para continuar, confirme que leu e aceita as regras de segurança no app.
-
-                    Atenciosamente,  
-                    MSSP
-                    """)
                     st.rerun()
 
     st.subheader("📋 Colaboradores cadastrados")
@@ -855,6 +909,81 @@ elif pagina == "Colaboradores":
             st.divider()
     else:
         st.info("Nenhum colaborador cadastrado ainda.")
+
+# ==============================
+# Página: Rafael (NOVO MENU)
+# ==============================
+elif pagina == "Rafael":
+    st.title("🧠 Rafael — Cérebro Interno da MSSP")
+    st.caption("Sou seu supervisor interno. Falo com clareza, registro tudo e organizo prioridades.")
+
+    # Carregar histórico de mensagens
+    historico = st.session_state.rafael_historico
+
+    # Mostrar histórico
+    if historico:
+        st.subheader("📜 Histórico de Interações")
+        for msg in reversed(historico[-5:]):  # Mostrar últimas 5
+            st.markdown(f"**Você:** {msg['usuario']}")
+            st.markdown(f"**Rafael:** {msg['resposta']}")
+            st.markdown("---")
+
+    # Caixa de entrada
+    st.subheader("💬 Fale comigo")
+    entrada_usuario = st.text_input("Sua mensagem:", placeholder="Ex: O que falta implementar?")
+    
+    if st.button("Enviar"):
+        if entrada_usuario.strip():
+            # Gerar resposta inteligente
+            progresso = []
+            pendencias = []
+            sugestoes = []
+
+            # Verificar módulos
+            modulos_ativos = st.session_state.estado_mssp.get("modulos", {})
+            if modulos_ativos.get("colaboradores", False):
+                progresso.append("✅ Módulo de Colaboradores: ativo com envio de e-mail real")
+            else:
+                pendencias.append("❌ Módulo de Colaboradores desativado")
+
+            # Verificar automações
+            if st.session_state.estado_mssp.get("status_automacao") == "desativada":
+                pendencias.append("⚠️ Automação externa ainda não iniciada")
+                sugestoes.append("Priorize integração com APIs de redes sociais")
+
+            # Verificar state.json
+            if os.path.exists("state.json"):
+                progresso.append("✅ state.json configurado")
+            else:
+                pendencias.append("❌ state.json ausente")
+
+            # Montar resposta
+            resposta = "**Análise atual da MSSP:**\n\n"
+            if progresso:
+                resposta += "**O que foi feito:**\n" + "\n".join(f"- {p}" for p in progresso) + "\n\n"
+            if pendencias:
+                resposta += "**O que falta implementar:**\n" + "\n".join(f"- {p}" for p in pendencias) + "\n\n"
+            if sugestoes:
+                resposta += "**Sugestões de melhoria:**\n" + "\n".join(f"- {s}" for s in sugestoes)
+
+            # Salvar no histórico
+            nova_msg = {
+                "usuario": entrada_usuario.strip(),
+                "resposta": resposta,
+                "data_hora": datetime.now().isoformat()
+            }
+            historico.append(nova_msg)
+            st.session_state.rafael_historico = historico
+            salvar_rafael_historico(historico)
+
+            st.rerun()
+
+    # Status atual
+    st.subheader("📊 Status Atual")
+    estado = st.session_state.estado_mssp
+    st.write(f"- **Versão:** {estado.get('versao', 'Desconhecida')}")
+    st.write(f"- **Automação:** {estado.get('status_automacao', 'Desconhecido')}")
+    st.write(f"- **Módulos ativos:** {sum(1 for v in estado.get('modulos', {}).values() if v)}")
 
 # ==============================
 # Página: Configurações
