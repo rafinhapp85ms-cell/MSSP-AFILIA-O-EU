@@ -1,105 +1,107 @@
-import streamlit as st
-import json
 import os
-import datetime
+import json
 
-# Configuração
-st.set_page_config(page_title="MSSP Afiliado", layout="wide", initial_sidebar_state="expanded")
-
-# Arquivos
-HISTORICO = "historico_afiliacao.json"
-RAFAEL_HIST = "rafael_historico.json"
-
-def load(f):
-    return json.load(open(f, "r", encoding="utf-8")) if os.path.exists(f) else []
-
-def save(f, data):
-    with open(f, "w", encoding="utf-8") as fp:
-        json.dump(data, fp, ensure_ascii=False, indent=2)
-
-# Inicializar sessão
-if "historico" not in st.session_state:
-    st.session_state.historico = load(HISTORICO)
-if "rafael_historico" not in st.session_state:
-    st.session_state.rafael_historico = load(RAFAEL_HIST)
-
-# Sidebar
-st.sidebar.title("MSSP Afiliado")
-pagina = st.sidebar.radio("Seções", ["Início", "Pesquisa de Produtos", "Ideias de Anúncio", "Postar", "Histórico", "Colaboradores", "Rafinha", "Configurações"], index=0)
-
-# Início
-if pagina == "Início":
-    st.title("🎯 MSSP Afiliado")
-    st.write("Fase 2A — Análise Avançada de Produtos")
-    st.info("Comece por 'Pesquisa de Produtos'")
-
-# Rafinha — FUNCIONANDO 100%
-elif pagina == "Rafinha":
-    st.title("🧠 Rafinha — Cérebro Interno da MSSP")
-    st.caption("Sou seu parceiro, guardião e resolvedor.")
-
-    hist = st.session_state.rafael_historico
-
-    # Exibir mensagens
-    for msg in hist[-20:]:
-        u = msg.get("usuario", "").strip()
-        r = msg.get("resposta", "").strip()
-        if u:
-            st.markdown(f'<div style="text-align:right; background:#e3f2fd; padding:10px; margin:6px 0; border-radius:8px;">Você: {u}</div>', unsafe_allow_html=True)
-        if r:
-            st.markdown(f'<div style="background:#f1f8e9; padding:10px; margin:6px 0; border-radius:8px;">Rafinha: {r}</div>', unsafe_allow_html=True)
-
-    # Formulário com limpeza automática
-    with st.form(key="rf_form", clear_on_submit=True):
-        texto = st.text_input("Sua mensagem:", key="inp_rf", label_visibility="collapsed")
-        if st.form_submit_button("Enviar"):
-            if texto.strip():
-                # Resposta 100% segura — só texto ASCII, sem markdown, sem emojis
-                if "erro" in texto.lower() or "falhou" in texto.lower():
-                    resp = "Caralho, deu ruim? Me mostra o erro que eu resolvo na hora."
-                elif "tá lindo" in texto.lower() or "bom" in texto.lower() or "certo" in texto.lower():
-                    resp = "Tá lindo, parceiro! Bora resolver o próximo desafio?"
-                else:
-                    resp = "Minha análise atual: modulo colaboradores ativo. state.json configurado. automacao externa ainda nao iniciada. Quer que eu resolva agora ou so registro por enquanto?"
-
-                nova = {
-                    "usuario": texto.strip(),
-                    "resposta": resp,
-                    "data_hora": datetime.datetime.now().isoformat()
-                }
-                hist.append(nova)
-                st.session_state.rafael_historico = hist
-                save(RAFAEL_HIST, hist)
-                st.rerun()
-
-# Outras páginas mínimas (só para não quebrar)
-elif pagina == "Pesquisa de Produtos":
-    st.title("🔍 Pesquisa de Produtos")
-    st.text_input("Link do produto:", "")
-    if st.button("Analisar"): st.success("Pronto")
-
-elif pagina == "Ideias de Anúncio":
-    st.title("✍️ Ideias de Anúncio")
-    st.text_input("Nome do produto:", "")
-    if st.button("Gerar"): st.success("Feito")
-
-elif pagina == "Postar":
-    st.title("📤 Postar")
-    st.text_input("YouTube - Usuário:", "")
-    if st.button("Salvar"): st.success("Salvo")
-
-elif pagina == "Histórico":
-    st.title("📜 Histórico")
-    st.info("Nenhum registro ainda.")
-
-elif pagina == "Colaboradores":
-    st.title("👥 Colaboradores")
-    st.text_input("E-mail:", "")
-    if st.button("Adicionar"): st.success("Enviado")
-
-elif pagina == "Configurações":
-    st.title("⚙️ Configurações")
-    st.write("Tudo local. Sem internet. Sem erros.")
-
-else:
-    st.title("Início")
+def detectar_e_analisar_erros_persistencia():
+    """
+    Detecta e analisa erros de persistência nos arquivos críticos da MSSP.
+    Retorna um dicionário com o relatório completo de cada arquivo.
+    NÃO modifica, apaga ou sobrescreve nenhum arquivo.
+    """
+    arquivos_criticos = {
+        "dados_postar.json": "Redes sociais e configurações de postagem",
+        "state.json": "Estado interno do sistema (módulos, automação, logs)",
+        "historico_afiliacao.json": "Histórico de análises e anúncios gerados",
+        "colaboradores.json": "Acessos temporários de colaboradores"
+    }
+    
+    relatorio = {}
+    
+    for arquivo, impacto in arquivos_criticos.items():
+        # Inicializa resultado para este arquivo
+        resultado = {
+            "arquivo": arquivo,
+            "status": "ok",
+            "gravidade": "nenhum",
+            "impacto": impacto,
+            "detalhes": ""
+        }
+        
+        # PASSO 1: Verificar se o arquivo existe
+        if not os.path.exists(arquivo):
+            resultado["status"] = "ausente"
+            resultado["gravidade"] = "critico"
+            resultado["detalhes"] = "Arquivo não encontrado no diretório da aplicação."
+            relatorio[arquivo] = resultado
+            continue
+        
+        # PASSO 2: Tentar carregar o JSON
+        try:
+            with open(arquivo, "r", encoding="utf-8") as f:
+                conteudo = json.load(f)
+        except json.JSONDecodeError:
+            resultado["status"] = "corrompido"
+            resultado["gravidade"] = "irreversivel"
+            resultado["detalhes"] = "Arquivo existe, mas contém JSON inválido (sintaxe quebrada)."
+            relatorio[arquivo] = resultado
+            continue
+        except Exception as e:
+            resultado["status"] = "erro_leitura"
+            resultado["gravidade"] = "critico"
+            resultado["detalhes"] = f"Falha ao ler o arquivo: {str(e)}"
+            relatorio[arquivo] = resultado
+            continue
+        
+        # PASSO 3: Verificar se o conteúdo é utilizável
+        if conteudo is None:
+            resultado["status"] = "vazio"
+            resultado["gravidade"] = "recuperavel"
+            resultado["detalhes"] = "Arquivo existe, mas está vazio ou nulo."
+            relatorio[arquivo] = resultado
+            continue
+        
+        if isinstance(conteudo, dict) and len(conteudo) == 0:
+            resultado["status"] = "vazio"
+            resultado["gravidade"] = "recuperavel"
+            resultado["detalhes"] = "Arquivo existe, mas contém um objeto vazio {}."
+            relatorio[arquivo] = resultado
+            continue
+        
+        if isinstance(conteudo, list) and len(conteudo) == 0:
+            resultado["status"] = "vazio"
+            resultado["gravidade"] = "recuperavel"
+            resultado["detalhes"] = "Arquivo existe, mas contém uma lista vazia []."
+            relatorio[arquivo] = resultado
+            continue
+        
+        # PASSO 4: Verificar estrutura mínima esperada (baseado no contexto da MSSP)
+        estrutura_valida = True
+        detalhes_estrutura = ""
+        
+        if arquivo == "dados_postar.json":
+            if not isinstance(conteudo, dict) or "redes" not in conteudo:
+                estrutura_valida = False
+                detalhes_estrutura = "Estrutura inválida: falta a chave 'redes'."
+        elif arquivo == "state.json":
+            if not isinstance(conteudo, dict) or "modulos" not in conteudo:
+                estrutura_valida = False
+                detalhes_estrutura = "Estrutura inválida: falta a chave 'modulos'."
+        elif arquivo == "historico_afiliacao.json":
+            if not isinstance(conteudo, list):
+                estrutura_valida = False
+                detalhes_estrutura = "Estrutura inválida: deve ser uma lista de registros."
+        elif arquivo == "colaboradores.json":
+            if not isinstance(conteudo, list):
+                estrutura_valida = False
+                detalhes_estrutura = "Estrutura inválida: deve ser uma lista de colaboradores."
+        
+        if not estrutura_valida:
+            resultado["status"] = "estrutura_invalida"
+            resultado["gravidade"] = "critico"
+            resultado["detalhes"] = detalhes_estrutura
+            relatorio[arquivo] = resultado
+            continue
+        
+        # Se chegou até aqui, o arquivo está OK
+        relatorio[arquivo] = resultado
+    
+    return relatorio
