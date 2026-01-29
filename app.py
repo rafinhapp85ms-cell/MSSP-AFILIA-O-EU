@@ -2,7 +2,7 @@ elif pagina == "Rafinha":
     st.title("🧠 Rafinha — Cérebro Interno da MSSP")
     st.caption("Sou seu parceiro, guardião e resolvedor. Falo direto, aprendo rápido e protejo a MSSP.")
 
-    # === CSS PARA CAIXA DE INPUT FIXA NA PARTE INFERIOR ===
+    # CSS para caixa de input fixa na parte inferior
     st.markdown(
         """
         <style>
@@ -44,12 +44,10 @@ elif pagina == "Rafinha":
         unsafe_allow_html=True
     )
 
-    # Carregar histórico
     historico = st.session_state.rafael_historico
 
-    # === CONTAINER PRINCIPAL PARA MENSAGENS ===
+    # Exibir mensagens
     chat_container = st.container()
-
     with chat_container:
         if historico:
             for msg in historico[-20:]:
@@ -62,7 +60,6 @@ elif pagina == "Rafinha":
                         unsafe_allow_html=True
                     )
                 if resposta_msg:
-                    # Formatação de alertas
                     if "❌" in resposta_msg:
                         resposta_msg = f'<span class="alert-error">{resposta_msg}</span>'
                     elif "⚠️" in resposta_msg:
@@ -79,9 +76,8 @@ elif pagina == "Rafinha":
                 unsafe_allow_html=True
             )
 
-    # === CAIXA DE ENTRADA FIXA NA PARTE INFERIOR ===
+    # Caixa de entrada fixa na parte inferior
     st.markdown('<div class="input-sticky">', unsafe_allow_html=True)
-    
     col1, col2 = st.columns([4, 1])
     with col1:
         entrada_usuario = st.text_input(
@@ -93,7 +89,6 @@ elif pagina == "Rafinha":
     with col2:
         if st.button("Enviar", key="btn_enviar_rafinha", use_container_width=True):
             if entrada_usuario.strip():
-                # Gerar resposta
                 modulos = st.session_state.estado_mssp.get("modulos", {})
                 automacao = st.session_state.estado_mssp.get("status_automacao", "desativada")
                 
@@ -125,7 +120,6 @@ elif pagina == "Rafinha":
                         resposta += "⚠️ **Falta fazer:**\n" + "\n".join(f"- {p}" for p in pendencias) + "\n\n"
                     resposta += "Quer que eu resolva agora ou só registre por enquanto?"
 
-                # Salvar
                 nova_msg = {
                     "usuario": entrada_usuario.strip(),
                     "resposta": resposta,
@@ -134,15 +128,17 @@ elif pagina == "Rafinha":
                 historico.append(nova_msg)
                 st.session_state.rafael_historico = historico
                 salvar_rafael_historico(historico)
-
-                # ✅ FORÇAR ROLAGEM AUTOMÁTICA PARA O FINAL
+                
+                # Força scroll automático para o final
                 st.components.v1.html(
                     """
                     <script>
-                    const container = document.querySelector('.stApp > div:nth-child(1) > div > div > div[data-testid="stVerticalBlock"] > div:last-child');
-                    if (container) {
-                        container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
+                    setTimeout(() => {
+                        const messages = document.querySelectorAll('.chat-bubble');
+                        if (messages.length > 0) {
+                            messages[messages.length - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    }, 100);
                     </script>
                     """,
                     height=0
@@ -150,7 +146,7 @@ elif pagina == "Rafinha":
                 st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Status na sidebar
+    # Status sidebar
     st.sidebar.markdown("### 📊 Status da MSSP")
     estado = st.session_state.estado_mssp
     st.sidebar.write(f"**Versão:** {estado.get('versao', 'Desconhecida')}")
