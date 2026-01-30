@@ -1,0 +1,11 @@
+{
+  "afiliacoes": [
+    {
+      "produto": "Exemplo Produto 1",
+      "link": "https://www.exemplo.com/produto1",
+      "data": "2026-01-30",
+      "status": "ativo",
+      "vendas": 0
+    }
+  ]
+}
