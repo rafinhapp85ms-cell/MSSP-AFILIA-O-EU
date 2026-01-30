@@ -1,32 +1,34 @@
 import streamlit as st
 import json
 import os
-import datetime
 
-st.set_page_config(page_title="MSSP Afiliado", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="MSSP Afiliado", layout="wide")
 
-# Arquivos
-HISTORICO = "historico_afiliacao.json"
-RAFAEL_HIST = "rafael_historico.json"
-DADOS_POSTAR = "dados_postar.json"
-STATE = "state.json"
-COLAB = "colaboradores.json"
+# Tenta carregar state.json — se falhar, usa padrão
+def load_state():
+    for name in ["state.json", "estado.json"]:
+        if os.path.exists(name):
+            try:
+                with open(name, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except:
+                pass
+    # Se nenhum existir, retorna padrão
+    return {
+        "versao": "1.0",
+        "modulos": {"pesquisa_produtos": True, "ideias_anuncio": True, "postar": True, "colaboradores": True},
+        "status_automacao": "desativada"
+    }
 
-def safe_load(f):
-    return json.load(open(f, "r", encoding="utf-8")) if os.path.exists(f) else []
-
-if "historico" not in st.session_state:
-    st.session_state.historico = safe_load(HISTORICO)
-if "rafael_historico" not in st.session_state:
-    st.session_state.rafael_historico = safe_load(RAFAEL_HIST)
+if "estado_mssp" not in st.session_state:
+    st.session_state.estado_mssp = load_state()
 
 # Sidebar
 st.sidebar.title("MSSP Afiliado")
 pagina = st.sidebar.radio("Seções", ["Início", "Postar", "Rafinha"], index=0)
 
 if pagina == "Início":
-    st.title("🎯 MSSP Afiliado")
-    st.info("Funcionando.")
+    st.title("✅ MSSP está funcionando")
 
 elif pagina == "Postar":
     st.title("📤 Postar")
@@ -36,20 +38,5 @@ elif pagina == "Postar":
 
 elif pagina == "Rafinha":
     st.title("🧠 Rafinha")
-    st.caption("Cérebro interno.")
-    
-    hist = st.session_state.rafael_historico
-    for m in hist[-5:]:
-        u = m.get("usuario", "").strip()
-        r = m.get("resposta", "").strip()
-        if u: st.markdown(f'<div style="text-align:right; background:#e3f2fd; padding:6px;">Você: {u}</div>', unsafe_allow_html=True)
-        if r: st.markdown(f'<div style="background:#f1f8e9; padding:6px;">Rafinha: {r}</div>', unsafe_allow_html=True)
-    
-    with st.form(key="rf", clear_on_submit=True):
-        msg = st.text_input("Mensagem:", key="msg", label_visibility="collapsed")
-        if st.form_submit_button("Enviar"):
-            if msg.strip():
-                resp = "Tá lindo, parceiro!" if "tá lindo" in msg.lower() else "Caralho, deu ruim?"
-                hist.append({"usuario": msg, "resposta": resp, "data_hora": datetime.datetime.now().isoformat()})
-                st.session_state.rafael_historico = hist
-                st.rerun()
+    st.text_input("Mensagem:", key="msg")
+    if st.button("Enviar"): st.info("Resposta: Tá lindo, parceiro!")
