@@ -1,0 +1,11 @@
+{
+  "versao": "1.0",
+  "modulos": {
+    "pesquisa_produtos": true,
+    "ideias_anuncio": true,
+    "postar": true,
+    "colaboradores": true
+  },
+  "status_automacao": "desativada",
+  "ultimo_acesso": null
+}
