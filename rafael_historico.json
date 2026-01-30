@@ -1,0 +1,10 @@
+{
+  "mensagens": [
+    {
+      "autor": "Rafinha",
+      "mensagem": "Sistema iniciado. Nenhuma ação pendente.",
+      "timestamp": "2026-01-30T00:00:00Z",
+      "tipo": "info"
+    }
+  ]
+}
