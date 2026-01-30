@@ -1,11 +1,37 @@
 {
-  "versao": "1.0",
-  "modulos": {
-    "pesquisa_produtos": true,
-    "ideias_anuncio": true,
-    "postar": true,
-    "colaboradores": true
+  "usuarios": [],
+  "sessao_atual": null,
+  "configuracoes": {
+    "tema": "claro",
+    "lingua": "pt"
   },
-  "status_automacao": "desativada",
-  "ultimo_acesso": null
+  "redes_sociais": {
+    "YouTube": {
+      "usuario": "",
+      "senha": ""
+    },
+    "Instagram": {
+      "usuario": "",
+      "senha": ""
+    },
+    "Facebook": {
+      "usuario": "",
+      "senha": ""
+    },
+    "TikTok": {
+      "usuario": "",
+      "senha": ""
+    },
+    "Pinterest": {
+      "usuario": "",
+      "senha": ""
+    }
+  },
+  "modulos": {
+    "colaboradores": {
+      "ativo": true,
+      "validade": 15,
+      "usuarios": []
+    }
+  }
 }
